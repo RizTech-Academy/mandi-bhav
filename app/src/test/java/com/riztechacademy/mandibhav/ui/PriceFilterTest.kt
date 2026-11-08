@@ -42,4 +42,14 @@ class PriceFilterTest {
         )
         assertEquals(emptyList<Any>(), filterPrices(prices, query = "vashi", commodity = "Onion"))
     }
+
+    @Test
+    fun theHomeMarketComesFirstAndNothingElseMoves() {
+        val ordered = homeMarketFirst(prices, homeMarket = "Vashi APMC, Navi Mumbai")
+        assertEquals(listOf(SamplePrices.vashiPotato, SamplePrices.vashiWheat), ordered.take(2))
+        assertEquals(prices - setOf(SamplePrices.vashiPotato, SamplePrices.vashiWheat), ordered.drop(2))
+
+        assertEquals(prices, homeMarketFirst(prices, homeMarket = null))
+        assertEquals(prices, homeMarketFirst(prices, homeMarket = "A market with no prices today"))
+    }
 }

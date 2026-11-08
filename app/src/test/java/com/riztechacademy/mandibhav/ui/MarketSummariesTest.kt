@@ -1,21 +1,26 @@
 package com.riztechacademy.mandibhav.ui
 
 import com.riztechacademy.mandibhav.data.SamplePrices
+import com.riztechacademy.mandibhav.model.Market
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class MarketSummariesTest {
 
     @Test
-    fun eachMarketOnceWithItsCountInFirstSeenOrder() {
-        assertEquals(
-            listOf(
-                MarketSummary("Lasalgaon APMC", 2),
-                MarketSummary("Pune (Gultekdi) APMC", 3),
-                MarketSummary("Nashik APMC", 2),
-                MarketSummary("Vashi APMC, Navi Mumbai", 2),
-            ),
-            marketSummaries(SamplePrices.all),
+    fun aSummaryCountsTheMarketsPricesAndNamesItsDistrict() {
+        val pune = Market(
+            name = "Pune (Gultekdi) APMC",
+            district = "Pune",
+            prices = listOf(SamplePrices.puneOnion, SamplePrices.puneTomato, SamplePrices.puneTur),
         )
+
+        assertEquals(MarketSummary("Pune (Gultekdi) APMC", "Pune", 3), pune.summary())
+        assertEquals("Pune district, 3 prices today", pune.summary().description())
+    }
+
+    @Test
+    fun anUnknownDistrictIsLeftOutAndOnePriceIsSingular() {
+        assertEquals("1 price today", MarketSummary("Lasalgaon APMC", "", 1).description())
     }
 }

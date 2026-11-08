@@ -7,6 +7,16 @@ fun commoditiesIn(prices: List<CommodityPrice>): List<String> =
     prices.map { it.commodity }.distinct()
 
 /**
+ * [prices] with the home market's first, each group in its original order.
+ * With no home market, or one with no prices today, nothing moves.
+ */
+fun homeMarketFirst(prices: List<CommodityPrice>, homeMarket: String?): List<CommodityPrice> {
+    if (homeMarket == null) return prices
+    val (home, others) = prices.partition { it.market == homeMarket }
+    return home + others
+}
+
+/**
  * The prices to show for a search query and an optional chosen commodity.
  * The query matches commodity or market, ignoring case and surrounding spaces;
  * a null commodity means "all".

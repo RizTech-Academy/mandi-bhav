@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -24,14 +25,20 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.riztechacademy.mandibhav.data.SamplePrices
 import com.riztechacademy.mandibhav.model.CommodityPrice
+import com.riztechacademy.mandibhav.model.Market
 import com.riztechacademy.mandibhav.ui.theme.MandiBhavTheme
 
-/** One market in the markets list: its name and how many prices it has today. */
-data class MarketSummary(val name: String, val priceCount: Int)
+/** One market in the markets list: its name, its district, and how many prices it has today. */
+data class MarketSummary(val name: String, val district: String, val priceCount: Int)
 
-/** Every market in [prices], each once, in the order it first appears. */
-fun marketSummaries(prices: List<CommodityPrice>): List<MarketSummary> =
-    prices.groupBy { it.market }.map { (name, atMarket) -> MarketSummary(name, atMarket.size) }
+/** What the markets list shows for [this] market. */
+fun Market.summary() = MarketSummary(name = name, district = district, priceCount = prices.size)
+
+/** "Nashik district, 2 prices today", leaving out a district that is not known. */
+fun MarketSummary.description(): String {
+    val count = if (priceCount == 1) "1 price today" else "$priceCount prices today"
+    return if (district.isEmpty()) count else "$district district, $count"
+}
 
 /** The Markets destination: the markets that reported today. */
 @Composable
@@ -63,9 +70,7 @@ fun MarketsScreen(
             items(items = markets, key = { it.name }) { market ->
                 ListItem(
                     headlineContent = { Text(market.name) },
-                    supportingContent = {
-                        Text(if (market.priceCount == 1) "1 price today" else "${market.priceCount} prices today")
-                    },
+                    supportingContent = { Text(market.description()) },
                     modifier = Modifier.clickable { onMarketClick(market.name) },
                 )
                 HorizontalDivider()
@@ -86,18 +91,31 @@ fun MarketRoute(
     ),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    MarketScreen(uiState.market, uiState.prices, onPriceClick, onBack, modifier, isLoading = uiState.isLoading)
+    MarketScreen(
+        market = uiState.market,
+        district = uiState.district,
+        prices = uiState.prices,
+        onPriceClick = onPriceClick,
+        onBack = onBack,
+        modifier = modifier,
+        isLoading = uiState.isLoading,
+        isHomeMarket = uiState.isHomeMarket,
+        onHomeMarketClick = viewModel::toggleHomeMarket,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MarketScreen(
     market: String,
+    district: String,
     prices: List<CommodityPrice>,
     onPriceClick: (priceId: String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     isLoading: Boolean = false,
+    isHomeMarket: Boolean = false,
+    onHomeMarketClick: () -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier,
@@ -112,6 +130,24 @@ fun MarketScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (district.isNotEmpty()) {
+                item(key = "district") {
+                    Text(
+                        text = "$district district",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            item(key = "home-market") {
+                // A chip, not a plain button: TalkBack reads whether it is
+                // selected, so the choice is heard as well as seen.
+                FilterChip(
+                    selected = isHomeMarket,
+                    onClick = onHomeMarketClick,
+                    label = { Text("My home market") },
+                )
+            }
             if (!isLoading && prices.isEmpty()) {
                 item(key = "empty") {
                     Text(
@@ -135,7 +171,12 @@ fun MarketScreen(
 @Composable
 private fun MarketsScreenPreview() {
     MandiBhavTheme {
-        MarketsScreen(markets = marketSummaries(SamplePrices.all), onMarketClick = {})
+        MarketsScreen(
+            markets = SamplePrices.districts.map { (name, district) ->
+                MarketSummary(name, district, SamplePrices.all.count { it.market == name })
+            },
+            onMarketClick = {},
+        )
     }
 }
 
@@ -145,6 +186,7 @@ private fun MarketScreenPreview() {
     MandiBhavTheme {
         MarketScreen(
             market = "Pune (Gultekdi) APMC",
+            district = "Pune",
             prices = SamplePrices.all.filter { it.market == "Pune (Gultekdi) APMC" },
             onPriceClick = {},
             onBack = {},

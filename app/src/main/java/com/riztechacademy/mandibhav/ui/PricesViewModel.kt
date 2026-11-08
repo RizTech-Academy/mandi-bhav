@@ -4,8 +4,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.riztechacademy.mandibhav.data.PriceRepository
+import com.riztechacademy.mandibhav.data.UserPreferencesRepository
 import com.riztechacademy.mandibhav.domain.FindBestMarketUseCase
+import com.riztechacademy.mandibhav.model.CommodityPrice
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.IOException
+import java.time.Instant
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +35,7 @@ class PricesViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val repository: PriceRepository,
     private val findBestMarket: FindBestMarketUseCase,
+    preferences: UserPreferencesRepository,
 ) : ViewModel() {
 
     /** What the refresh button has set going: whether it is running, and what to tell the user. */
@@ -45,17 +50,33 @@ class PricesViewModel @Inject constructor(
         if (commodity == null) flowOf(null) else findBestMarket(commodity)
     }
 
+    /** What is saved on the phone: the prices, when they came, and the market to put first. */
+    private data class SavedData(
+        val prices: List<CommodityPrice>,
+        val homeMarket: String?,
+        val lastUpdated: Instant?,
+    )
+
+    private val savedData = combine(
+        repository.todaysPrices(), preferences.homeMarket, repository.lastUpdated(),
+    ) { prices, home, lastUpdated ->
+        SavedData(prices, home, lastUpdated)
+    }
+
     /** The whole screen. Each input above changes it; nothing else does. */
     val uiState: StateFlow<PricesUiState> =
         combine(
-            repository.todaysPrices(), query, selectedCommodity, bestMarket, refreshStatus,
-        ) { prices, query, commodity, best, status ->
+            savedData, query, selectedCommodity, bestMarket, refreshStatus,
+        ) { (prices, home, lastUpdated), query, commodity, best, status ->
             PricesUiState(
                 isLoading = false,
                 query = query,
                 selectedCommodity = commodity,
                 commodities = commoditiesIn(prices),
-                prices = filterPrices(prices, query, commodity),
+                prices = filterPrices(homeMarketFirst(prices, home), query, commodity),
+                homeMarket = home,
+                lastUpdated = lastUpdated,
+                noSavedPrices = prices.isEmpty(),
                 bestMarket = best,
                 isRefreshing = status.isRefreshing,
                 userMessage = status.userMessage,
@@ -106,6 +127,10 @@ class PricesViewModel @Inject constructor(
                     else -> "$changed prices updated."
                 }
                 refreshStatus.update { it.copy(userMessage = message) }
+            } catch (e: IOException) {
+                // No connection. The saved prices are still on screen and
+                // still correct for when they were fetched; say so plainly.
+                refreshStatus.update { it.copy(userMessage = "No connection. Showing the prices saved on this phone.") }
             } finally {
                 refreshStatus.update { it.copy(isRefreshing = false) }
             }

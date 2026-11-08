@@ -2,6 +2,8 @@ package com.riztechacademy.mandibhav.data
 
 import com.riztechacademy.mandibhav.model.CommodityPrice
 import com.riztechacademy.mandibhav.model.DayPrice
+import com.riztechacademy.mandibhav.model.Market
+import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -19,8 +21,11 @@ interface PriceRepository {
     /** One price by its id; null if there is no such price (any more). */
     fun price(id: String): Flow<CommodityPrice?>
 
-    /** Today's prices at one market. */
-    fun pricesAt(market: String): Flow<List<CommodityPrice>>
+    /** Every market, by name, each with its prices today. */
+    fun markets(): Flow<List<Market>>
+
+    /** One market and its prices today; null if there is no such market. */
+    fun market(name: String): Flow<Market?>
 
     /**
      * The last seven days of modal prices for the price with [id], oldest
@@ -28,6 +33,13 @@ interface PriceRepository {
      */
     fun week(id: String): Flow<List<DayPrice>>
 
-    /** Fetches the latest prices. Returns how many prices changed. */
+    /** When prices were last fetched successfully; null if never. */
+    fun lastUpdated(): Flow<Instant?>
+
+    /**
+     * Fetches the latest prices. Returns how many prices changed. Throws an
+     * [java.io.IOException] when there is no connection; the saved prices
+     * are left as they were.
+     */
     suspend fun refresh(): Int
 }

@@ -124,6 +124,22 @@ object SamplePrices {
         puneTomato.copy(modalPrice = 1_450),
     )
 
+    /** The district each sample market is in. */
+    val districts: Map<String, String> = mapOf(
+        "Lasalgaon APMC" to "Nashik",
+        "Pune (Gultekdi) APMC" to "Pune",
+        "Nashik APMC" to "Nashik",
+        "Vashi APMC, Navi Mumbai" to "Thane",
+    )
+
+    /**
+     * Every price as the markets close: the morning's list with the 4 pm
+     * closing prices applied. This is what the fake network returns.
+     */
+    val latest: List<CommodityPrice> = all.map { price ->
+        closingPrices.firstOrNull { it.id == price.id } ?: price
+    }
+
     /**
      * The modal price over the last seven days for each price above, oldest
      * first, keyed by price id. The last value is that price's modal price.

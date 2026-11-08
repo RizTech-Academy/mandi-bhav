@@ -12,11 +12,19 @@ leaves it.
 
 The app has three destinations, Prices, Markets and Alerts, in a navigation bar on a phone and a
 navigation rail from 600 dp wide. A price opens a detail screen with its last seven days and the
-best market for that commodity today. Alerts is a placeholder until the notifications module.
+best market for that commodity today. A market's screen shows its district and lets the user make
+it their home market, whose prices then come first on the Prices tab. Alerts is a placeholder until
+the notifications module.
 
-The prices and the seven-day histories in `data/SamplePrices.kt` are realistic, not real. The
-Refresh button applies a set of "4 pm closing prices" from the same file after a one-second pause
-that stands in for the network. The app fetches real prices in the networking module.
+Prices are kept on the phone in a Room database, so they survive the app being closed, the process
+being killed and the phone restarting, and the app works with no connection. The Prices tab says
+when they were last fetched. The home market is kept in Preferences DataStore.
+
+The prices and the seven-day histories in `data/SamplePrices.kt` are realistic, not real. A new
+database is seeded with the morning's prices. The Refresh button fetches a set of "4 pm closing
+prices" from the same file after a one-second pause that stands in for the network, and fails, as a
+real request would, when the phone has no connection. The app fetches real prices in the networking
+module.
 
 ## How the code is organised
 
@@ -25,14 +33,23 @@ that stands in for the network. The app fetches real prices in the networking mo
 | `ui` | UI | Screens (stateless composables), their routes, one `ViewModel` per screen, and one UI-state class per screen |
 | `navigation` | UI | Navigation 3 keys and the per-tab back stacks |
 | `domain` | Domain | `bestMarketFor` and `FindBestMarketUseCase`: the one business rule two screens share |
-| `data` | Data | `PriceRepository`, the interface every screen gets its prices from, and `SamplePriceRepository`, its in-memory implementation |
-| `model` | Shared | `CommodityPrice` and `DayPrice`, plain data classes every layer uses |
-| `di` | Wiring | The Hilt module that says which `PriceRepository` the app uses |
+| `data` | Data | `PriceRepository`, the interface every screen gets its prices from; `RoomPriceRepository`, its implementation over the database; the demo network data source; and `UserPreferencesRepository` over DataStore |
+| `data.local` | Data | The Room database: entities, the DAO, type converters, the migration and the seed |
+| `model` | Shared | `CommodityPrice`, `DayPrice` and `Market`, plain data classes every layer uses |
+| `di` | Wiring | The Hilt modules that build the database and the DataStore and say which implementations the app uses |
 
-Dependencies point one way: `ui` → `domain` → `data`. The repository is the single source of
-truth: one instance, bound `@Singleton` in `di/DataModule.kt`, exposing every answer as a `Flow`,
-so a refresh reaches every screen that is open. Module 8 replaces `SamplePriceRepository` with a
-Room-backed one by changing the binding; no screen changes.
+Dependencies point one way: `ui` → `domain` → `data`. The database is the single source of truth:
+every screen watches a Room query through the repository, and a refresh writes to the database, so
+it reaches every screen that is open. A failed refresh writes nothing and the screens keep the
+saved prices.
+
+## The database
+
+The schema is exported to `app/schemas/`, one JSON file per version, and committed: the migration
+tests build old databases from these files. Version 1 had prices and their history; version 2 adds
+the `markets` table, through a hand-written migration (`data/local/Migrations.kt`); version 3 adds
+`prices.fetchedAt` through a Room auto-migration. After changing an entity, bump the version, build
+once so the new JSON exists, then add and test the migration.
 
 ## Running it
 
@@ -46,11 +63,15 @@ From the command line:
 
 ```bash
 ./gradlew assembleDebug        # build
-./gradlew testDebugUnitTest    # unit tests
+./gradlew testDebugUnitTest    # unit tests, including the Room tests under Robolectric
 ./gradlew installDebug         # install on a connected device or emulator
 ```
 
 Android Studio writes `local.properties` with your SDK path on first sync; it is not committed.
+
+The database, migration and DataStore tests run on the JVM with Robolectric, so they need no
+emulator. Robolectric's Android 36 sandbox needs Java 21, and this project builds on JDK 17, so
+`app/src/test/resources/robolectric.properties` runs them on API 35.
 
 ## Checkpoints: one branch per module
 
@@ -82,6 +103,10 @@ running app and none of the understanding the module is for.
 | Hilt (hilt-android, hilt-compiler, Gradle plugin) | 2.60.1 |
 | KSP | 2.3.13 |
 | androidx.hilt (hilt-lifecycle-viewmodel-compose) | 1.4.0 |
+| Room 3 (room3-runtime, room3-compiler, room3-testing, Gradle plugin `androidx.room3`) | 3.0.3 |
+| DataStore (datastore-preferences) | 1.3.0 |
+| Robolectric (tests) | 4.17 |
+| androidx.test core, ext-junit (tests) | 1.7.0, 1.3.0 |
 | compileSdk | 37.2 |
 | targetSdk | 36 |
 | minSdk | 26 |

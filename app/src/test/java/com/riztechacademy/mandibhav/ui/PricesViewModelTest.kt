@@ -3,6 +3,7 @@ package com.riztechacademy.mandibhav.ui
 import androidx.lifecycle.SavedStateHandle
 import com.riztechacademy.mandibhav.MainDispatcherRule
 import com.riztechacademy.mandibhav.data.FakePriceRepository
+import com.riztechacademy.mandibhav.data.FakeUserPreferencesRepository
 import com.riztechacademy.mandibhav.data.SamplePrices
 import com.riztechacademy.mandibhav.domain.FindBestMarketUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -25,7 +26,8 @@ class PricesViewModelTest {
     private fun newViewModel(
         handle: SavedStateHandle = SavedStateHandle(),
         repository: FakePriceRepository = FakePriceRepository(),
-    ) = PricesViewModel(handle, repository, FindBestMarketUseCase(repository))
+        preferences: FakeUserPreferencesRepository = FakeUserPreferencesRepository(),
+    ) = PricesViewModel(handle, repository, FindBestMarketUseCase(repository), preferences)
 
     /**
      * uiState only updates while someone collects it
@@ -194,5 +196,44 @@ class PricesViewModelTest {
 
         assertEquals(3_050L, viewModel.uiState.value.prices.single().modalPrice)
         assertEquals(3_050L, viewModel.uiState.value.bestMarket?.modalPrice)
+    }
+
+    @Test
+    fun theHomeMarketsPricesComeFirstAndFollowThePreference() = runTest {
+        val preferences = FakeUserPreferencesRepository()
+        val viewModel = newViewModel(preferences = preferences)
+        collectUiState(viewModel)
+        viewModel.onCommodityClick("Onion")
+        assertEquals("Lasalgaon APMC", viewModel.uiState.value.prices.first().market)
+
+        preferences.setHomeMarket("Pune (Gultekdi) APMC")
+
+        assertEquals("Pune (Gultekdi) APMC", viewModel.uiState.value.homeMarket)
+        assertEquals("Pune (Gultekdi) APMC", viewModel.uiState.value.prices.first().market)
+        // The chips keep their order: the home market moves prices, not commodities.
+        assertEquals("Onion", viewModel.uiState.value.commodities.first())
+    }
+
+    @Test
+    fun withNoConnectionTheSavedPricesStayAndTheMessageSaysWhy() = runTest {
+        val repository = FakePriceRepository().apply { offline = true }
+        val viewModel = newViewModel(repository = repository)
+        collectUiState(viewModel)
+
+        viewModel.refresh()
+
+        val state = viewModel.uiState.value
+        assertEquals("No connection. Showing the prices saved on this phone.", state.userMessage)
+        assertEquals(SamplePrices.all, state.prices)
+        assertFalse(state.isRefreshing)
+    }
+
+    @Test
+    fun anEmptyPhoneIsNotTheSameAsNoMatches() = runTest {
+        val viewModel = newViewModel(repository = FakePriceRepository(prices = emptyList()))
+        collectUiState(viewModel)
+
+        assertEquals(true, viewModel.uiState.value.noSavedPrices)
+        assertFalse(viewModel.uiState.value.noResults)
     }
 }

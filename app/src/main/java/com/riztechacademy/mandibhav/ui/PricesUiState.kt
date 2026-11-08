@@ -1,6 +1,7 @@
 package com.riztechacademy.mandibhav.ui
 
 import com.riztechacademy.mandibhav.model.CommodityPrice
+import java.time.Instant
 
 /**
  * Everything the prices screen shows, at one moment, in one object. The
@@ -17,13 +18,22 @@ data class PricesUiState(
     val commodities: List<String> = emptyList(),
     /** The prices to show, already filtered. */
     val prices: List<CommodityPrice> = emptyList(),
+    /** The market the user sells at, whose prices come first; null until chosen. */
+    val homeMarket: String? = null,
     /** The best market for the chosen commodity; null when "All" is selected. */
     val bestMarket: CommodityPrice? = null,
+    /** When the prices on this phone were last fetched; null if never. */
+    val lastUpdated: Instant? = null,
+    /** The phone has no prices saved at all, as opposed to none that match. */
+    val noSavedPrices: Boolean = false,
     /** True while a refresh is running. */
     val isRefreshing: Boolean = false,
     /** A message to show once, such as "3 prices updated.", until the screen says it has. */
     val userMessage: String? = null,
 ) {
-    /** The filters match nothing. Not while loading: nothing has been matched yet. */
-    val noResults: Boolean get() = !isLoading && prices.isEmpty()
+    /**
+     * The filters match nothing. Not while loading, when nothing has been
+     * matched yet, and not when there is nothing saved to match against.
+     */
+    val noResults: Boolean get() = !isLoading && !noSavedPrices && prices.isEmpty()
 }

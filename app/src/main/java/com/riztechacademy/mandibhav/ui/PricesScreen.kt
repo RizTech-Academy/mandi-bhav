@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -45,6 +46,8 @@ import androidx.window.core.layout.WindowSizeClass
 import com.riztechacademy.mandibhav.R
 import com.riztechacademy.mandibhav.data.SamplePrices
 import com.riztechacademy.mandibhav.ui.theme.MandiBhavTheme
+import java.time.Instant
+import java.time.ZoneId
 import kotlinx.coroutines.launch
 
 /**
@@ -213,6 +216,28 @@ fun PricesScreen(
                     )
                 }
             }
+            if (!uiState.isLoading) {
+                item(key = "updated", contentType = "message", span = { GridItemSpan(maxLineSpan) }) {
+                    UpdatedText(lastUpdated = uiState.lastUpdated)
+                }
+            }
+            if (uiState.noSavedPrices) {
+                item(key = "nothing-saved", contentType = "message", span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        text = "No prices saved on this phone yet. Tap Refresh to download today's.",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+            }
+            uiState.homeMarket?.let { home ->
+                item(key = "home-market", contentType = "message", span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        text = "$home, your home market, comes first.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             uiState.bestMarket?.let { best ->
                 item(key = "best-market", contentType = "message", span = { GridItemSpan(maxLineSpan) }) {
                     BestMarketText(best = best)
@@ -240,6 +265,29 @@ fun PricesScreen(
             }
         }
     }
+}
+
+/**
+ * How old the saved prices are, in the error colour once they are older than
+ * [STALE_AFTER]. "Now" is read when this is drawn; it is not a ticking clock.
+ */
+@Composable
+private fun UpdatedText(lastUpdated: Instant?) {
+    val label = updatedLabel(
+        lastUpdated = lastUpdated,
+        now = Instant.now(),
+        zone = ZoneId.systemDefault(),
+        locale = LocalConfiguration.current.locales[0],
+    )
+    Text(
+        text = if (label.isStale && lastUpdated != null) "${label.text}. May be out of date." else label.text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = if (label.isStale) {
+            MaterialTheme.colorScheme.error
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+    )
 }
 
 /** Show "Back to top" once the search field and the first two cards have scrolled away. */
