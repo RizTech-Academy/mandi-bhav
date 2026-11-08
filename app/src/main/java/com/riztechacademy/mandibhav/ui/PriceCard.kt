@@ -1,19 +1,24 @@
 package com.riztechacademy.mandibhav.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import com.riztechacademy.mandibhav.data.SamplePrices
 import com.riztechacademy.mandibhav.model.CommodityPrice
+import com.riztechacademy.mandibhav.ui.theme.MandiBhavTheme
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -21,34 +26,67 @@ private val priceDateFormat = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.E
 
 @Composable
 fun PriceCard(price: CommodityPrice, modifier: Modifier = Modifier) {
-    Card(modifier = modifier) {
-        Column(modifier = Modifier.padding(16.dp)) {
+    val description = priceCardDescription(price)
+    Card(
+        // TalkBack reads the card as one sentence, not a string of fragments.
+        modifier = modifier.clearAndSetSemantics { contentDescription = description },
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             Text(
                 text = price.commodity,
                 style = MaterialTheme.typography.titleLarge,
             )
+            // Market and date on separate lines: at a large font size a
+            // shared line wrapped in the middle of the date.
             Text(
-                text = "${price.market} · ${priceDateFormat.format(price.date)}",
+                text = price.market,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "${formatRupees(price.modalPrice)} / quintal",
-                style = MaterialTheme.typography.headlineSmall,
-            )
-            Text(
-                text = "Range ${formatRupees(price.minPrice)} – ${formatRupees(price.maxPrice)}",
+                text = priceDateFormat.format(price.date),
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Row(
+                modifier = Modifier.padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = formatRupees(price.modalPrice),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.alignByBaseline(),
+                )
+                Text(
+                    text = "per quintal",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.alignByBaseline(),
+                )
+            }
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Min ${formatRupees(price.minPrice)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = "Max ${formatRupees(price.maxPrice)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
         }
     }
 }
 
-@Preview(showBackground = true)
+@PreviewLightDark
 @Composable
 private fun PriceCardPreview() {
-    MaterialTheme {
+    MandiBhavTheme {
         PriceCard(price = SamplePrices.lasalgaonOnion)
     }
 }
@@ -56,7 +94,7 @@ private fun PriceCardPreview() {
 @Preview(name = "Large text", showBackground = true, fontScale = 1.5f, widthDp = 320)
 @Composable
 private fun PriceCardLargeTextPreview() {
-    MaterialTheme {
+    MandiBhavTheme {
         PriceCard(price = SamplePrices.puneOnion)
     }
 }
@@ -66,7 +104,7 @@ private fun PriceCardLargeTextPreview() {
 private fun PriceCardSamplesPreview(
     @PreviewParameter(SamplePriceProvider::class) price: CommodityPrice,
 ) {
-    MaterialTheme {
+    MandiBhavTheme {
         PriceCard(price = price)
     }
 }

@@ -55,5 +55,51 @@ object SamplePrices {
         modalPrice = 1_200,
     )
 
-    val all = listOf(lasalgaonOnion, puneOnion, nashikOnion, puneTomato, nashikTomato)
+    val vashiPotato = CommodityPrice(
+        commodity = "Potato",
+        market = "Vashi APMC, Navi Mumbai",
+        date = day,
+        minPrice = 1_600,
+        maxPrice = 2_600,
+        modalPrice = 2_100,
+    )
+
+    val vashiWheat = CommodityPrice(
+        commodity = "Wheat",
+        market = "Vashi APMC, Navi Mumbai",
+        date = day,
+        minPrice = 2_700,
+        maxPrice = 3_300,
+        modalPrice = 3_000,
+    )
+
+    val lasalgaonSoybean = CommodityPrice(
+        commodity = "Soybean",
+        market = "Lasalgaon APMC",
+        date = day,
+        minPrice = 4_200,
+        maxPrice = 4_800,
+        modalPrice = 4_550,
+    )
+
+    val puneTur = CommodityPrice(
+        commodity = "Tur dal",
+        market = "Pune (Gultekdi) APMC",
+        date = day,
+        minPrice = 6_800,
+        maxPrice = 7_800,
+        modalPrice = 7_300,
+    )
+
+    val all = listOf(
+        lasalgaonOnion,
+        puneOnion,
+        nashikOnion,
+        puneTomato,
+        nashikTomato,
+        vashiPotato,
+        vashiWheat,
+        lasalgaonSoybean,
+        puneTur,
+    )
 }

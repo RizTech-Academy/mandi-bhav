@@ -1,3 +1,5 @@
 <resources>
     <color name="ic_launcher_background">#2E7D32</color>
+    <!-- Same as the Compose surface colour, so the launch does not flash. -->
+    <color name="window_background">#F7FBF2</color>
 </resources>
