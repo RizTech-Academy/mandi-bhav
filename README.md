@@ -163,9 +163,32 @@ From the command line:
 
 ```bash
 ./gradlew assembleDebug        # build
-./gradlew testDebugUnitTest    # unit tests: Room and files under Robolectric, the network against MockWebServer, the worker with work-testing
+./gradlew testDebugUnitTest    # unit tests: Room and files under Robolectric, the network against MockWebServer, the worker with work-testing, Compose UI under Robolectric
 ./gradlew installDebug         # install on a connected device or emulator
+./gradlew connectedDebugAndroidTest   # instrumented tests on the connected device (Compose UI, and the whole app under Hilt)
 ```
+
+## Testing, profiling and debugging
+
+- **Compose UI tests** in `app/src/sharedTest` run twice: on the JVM with Robolectric, as part of
+  `testDebugUnitTest`, and on a device with `connectedDebugAndroidTest`. The screen with its real
+  ViewModel needs the fakes in `app/src/test`, so it runs on the JVM only; the accessibility checks
+  run on a device only, because under Robolectric they pass whatever the screen does. `app/src/androidTest` starts the whole app under Hilt with the price repository
+  replaced (`TestPriceRepositoryModule`), through `HiltTestRunner`.
+- **The `baselineprofile` module** drives a release-like build from outside. It generates the
+  Baseline Profile in `app/src/release/generated/baselineProfiles/` and measures cold start and
+  scrolling with and without it. On an emulator, add
+  `-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR`, and
+  treat the numbers as indicative only:
+
+  ```bash
+  ./gradlew :app:generateBaselineProfile
+  ./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest
+  ```
+- **LeakCanary** is in debug builds only. It adds its own "Leaks" launcher icon and writes leaks
+  to logcat under the tag `LeakCanary`.
+- **Debug builds log how the last process ended** (Android 11 and later), under the tag
+  `LastExit`, when it was a crash or an ANR, with the ANR's main thread.
 
 Android Studio writes `local.properties` with your SDK path on first sync; it is not committed.
 
@@ -212,6 +235,13 @@ running app and none of the understanding the module is for.
 | DataStore (datastore-preferences) | 1.3.0 |
 | Robolectric (tests) | 4.17 |
 | androidx.test core, ext-junit (tests) | 1.7.0, 1.3.0 |
+| androidx.test runner (instrumented tests) | 1.7.0 |
+| Compose UI test (ui-test-junit4, -accessibility, ui-test-manifest; from the BOM) | 1.12.1 |
+| hilt-android-testing (instrumented tests) | 2.60.1 |
+| LeakCanary (debug only) | 2.14 |
+| profileinstaller | 1.4.1 |
+| Benchmark (benchmark-macro-junit4, Gradle plugin `androidx.baselineprofile`) | 1.5.0 |
+| UI Automator (benchmarks) | 2.4.1 |
 | compileSdk | 37.2 |
 | targetSdk | 36 |
 | minSdk | 26 |

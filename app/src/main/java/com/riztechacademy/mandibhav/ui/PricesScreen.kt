@@ -47,6 +47,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -200,7 +201,8 @@ fun PricesScreen(
                     end = innerPadding.calculateEndPadding(layoutDirection),
                 )
                 .consumeWindowInsets(innerPadding)
-                .imePadding(),
+                .imePadding()
+                .testTag(PRICES_GRID_TAG),
             // 88 dp more at the bottom lets the last card scroll clear of the
             // "Back to top" button (56 dp tall, 16 dp from the edge).
             contentPadding = PaddingValues(
@@ -369,6 +371,12 @@ private fun NothingSaved(isDownloading: Boolean, failure: RefreshFailure?, onRet
         }
     }
 }
+
+/**
+ * The grid's test tag. A lazy grid composes only the cards on screen, so a
+ * test scrolls the grid to a card before it can find it.
+ */
+const val PRICES_GRID_TAG = "prices-grid"
 
 /** How long a first download runs before the screen says the connection is slow. */
 private const val SLOW_AFTER_MILLIS = 5_000L

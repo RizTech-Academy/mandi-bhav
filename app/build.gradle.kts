@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.room)
+    alias(libs.plugins.baselineprofile)
 }
 
 /**
@@ -41,6 +42,9 @@ android {
         versionCode = 1
         versionName = "0.1"
         buildConfigField("String", "PRICES_API_BASE_URL", "\"$releasePricesApiUrl\"")
+        // Instrumented tests start Hilt's test application instead of
+        // MandiBhavApplication (see HiltTestRunner in androidTest).
+        testInstrumentationRunner = "com.riztechacademy.mandibhav.HiltTestRunner"
     }
 
     buildTypes {
@@ -69,6 +73,10 @@ android {
         // the debug build's merged assets, so they go in debug. Release
         // builds do not carry them.
         getByName("debug").assets.directories.add("$projectDir/schemas")
+        // Compose UI tests that need nothing but the screen run both ways:
+        // on the JVM under Robolectric (test) and on a device (androidTest).
+        getByName("test").kotlin.directories.add("src/sharedTest/kotlin")
+        getByName("androidTest").kotlin.directories.add("src/sharedTest/kotlin")
     }
 }
 
@@ -84,6 +92,11 @@ composeCompiler {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    // Installs the Baseline Profile on phones that did not get the app from
+    // Google Play, such as an emulator or a sideloaded APK.
+    implementation(libs.androidx.profileinstaller)
+    // Where the Baseline Profile comes from (see baselineprofile/).
+    baselineProfile(project(":baselineprofile"))
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -120,6 +133,11 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    // Watches for leaked activities, fragments and ViewModels and dumps the
+    // heap when it finds one. Debug builds only: it adds its own launcher
+    // icon and pauses the app to analyse a heap, neither of which belongs
+    // in front of a farmer.
+    debugImplementation(libs.leakcanary.android)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
@@ -128,4 +146,28 @@ dependencies {
     testImplementation(libs.androidx.room.testing)
     testImplementation(libs.okhttp.mockwebserver3)
     testImplementation(libs.androidx.work.testing)
+
+    // Compose UI tests, on the JVM (Robolectric) and on a device.
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    // Accessibility checks run on a device only: under Robolectric they
+    // pass whatever the screen does (see PricesScreenAccessibilityTest).
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4.accessibility)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.hilt.android.testing)
+    kspAndroidTest(libs.hilt.compiler)
+    // The empty activity createComposeRule() starts; debug builds only.
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+// The Accessibility Test Framework brings in Material for Views, which needs
+// newer AndroidX libraries (fragment, concurrent-futures) than the app ships.
+// An instrumented test runs inside the app's process, so its libraries must
+// be the app's; Gradle refuses the build otherwise. The checks Mandi Bhav
+// uses do not need Material, so it is left out of the test APK.
+configurations.matching { it.name.startsWith("debugAndroidTest") }.configureEach {
+    exclude(group = "com.google.android.material")
 }

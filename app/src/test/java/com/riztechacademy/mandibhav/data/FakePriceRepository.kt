@@ -4,6 +4,7 @@ import com.riztechacademy.mandibhav.model.CommodityPrice
 import com.riztechacademy.mandibhav.model.DayPrice
 import com.riztechacademy.mandibhav.model.Market
 import java.time.Instant
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -11,7 +12,9 @@ import kotlinx.coroutines.flow.map
 /**
  * A [PriceRepository] for tests. A test sets [prices] to whatever the case
  * needs, and every flow follows it, as the real repository's do. A refresh
- * swaps in [pricesAfterRefresh]; the fake counts its refreshes and has no delay.
+ * swaps in [pricesAfterRefresh]; the fake counts its refreshes and has no
+ * delay, unless a test calls [holdRefreshes] to keep them running until
+ * [releaseRefreshes], which is how a test sees a refresh in progress.
  */
 class FakePriceRepository(
     prices: List<CommodityPrice> = SamplePrices.all,
@@ -45,6 +48,22 @@ class FakePriceRepository(
     /** Set to make the next refreshes fail for this reason; null to succeed. */
     var failure: RefreshFailure? = null
 
+    private var gate: CompletableDeferred<Unit>? = null
+
+    /** From now on a refresh starts, counts itself, and waits for [releaseRefreshes]. */
+    fun holdRefreshes() {
+        gate = CompletableDeferred()
+    }
+
+    /** Lets every waiting refresh finish, and the next ones run straight through. */
+    fun releaseRefreshes() {
+        gate?.complete(Unit)
+        gate = null
+    }
+
+    /** How many collectors are watching today's prices right now. */
+    val todaysPricesSubscribers: Int get() = current.subscriptionCount.value
+
     override fun todaysPrices(): Flow<List<CommodityPrice>> = current
 
     override fun price(id: String): Flow<CommodityPrice?> =
@@ -65,6 +84,7 @@ class FakePriceRepository(
 
     override suspend fun refresh(): Int {
         refreshCount++
+        gate?.await()
         failure?.let { throw RefreshException(it) }
         lastUpdatedFlow.value = refreshedAt
         val changed = pricesAfterRefresh.count { it !in prices }

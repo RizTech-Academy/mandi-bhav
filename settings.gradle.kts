@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Mandi Bhav"
 include(":app")
+include(":baselineprofile")

@@ -12,9 +12,13 @@ import com.riztechacademy.mandibhav.data.FakeAlertRepository
 import com.riztechacademy.mandibhav.domain.FindBestMarketUseCase
 import com.riztechacademy.mandibhav.domain.RefreshPricesUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -341,6 +345,60 @@ class PricesViewModelTest {
         network.online = true
 
         assertEquals(0, repository.refreshCount)
+    }
+
+    @Test
+    fun aSecondTapWhileRefreshingIsIgnored() = runTest {
+        // The fake's refresh finishes instantly unless it is held, and an
+        // instant refresh is over before the second tap: the guard in
+        // refresh() would never be tested.
+        val repository = FakePriceRepository().apply { holdRefreshes() }
+        val viewModel = newViewModel(repository = repository)
+        collectUiState(viewModel)
+
+        viewModel.refresh()
+        assertTrue(viewModel.uiState.value.isRefreshing)
+        viewModel.refresh()
+        repository.releaseRefreshes()
+
+        assertEquals(1, repository.refreshCount)
+        assertFalse(viewModel.uiState.value.isRefreshing)
+        assertEquals("Prices are up to date.", viewModel.uiState.value.userMessage)
+    }
+
+    @Test
+    fun aRefreshIsShownStartingAndFinishing() = runTest {
+        val repository = FakePriceRepository().apply { holdRefreshes() }
+        val viewModel = newViewModel(repository = repository)
+        val seen = mutableListOf<Boolean>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.map { it.isRefreshing }.distinctUntilChanged().toList(seen)
+        }
+
+        viewModel.refresh()
+        repository.releaseRefreshes()
+
+        assertEquals(listOf(false, true, false), seen)
+    }
+
+    @Test
+    fun theStateKeepsWorkingForFiveSecondsAfterTheScreenStops() = runTest {
+        // WhileSubscribed(5_000): a rotation stops collecting for well under
+        // a second, so the work carries on; leaving the screen stops it.
+        // runTest's clock is virtual: these five seconds take no time.
+        val repository = FakePriceRepository()
+        val viewModel = newViewModel(repository = repository)
+        val screen = backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect {}
+        }
+        assertEquals(1, repository.todaysPricesSubscribers)
+
+        screen.cancel()
+        advanceTimeBy(4_999)
+        assertEquals(1, repository.todaysPricesSubscribers)
+
+        advanceTimeBy(2)
+        assertEquals(0, repository.todaysPricesSubscribers)
     }
 
     @Test

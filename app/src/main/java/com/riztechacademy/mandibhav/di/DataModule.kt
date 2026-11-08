@@ -23,17 +23,27 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 /**
- * Tells Hilt which class to hand out when something asks for a
- * [PriceRepository], and where its prices come from.
+ * The [PriceRepository] binding, in a module of its own so an instrumented
+ * test can replace just this one (see TestPriceRepositoryModule in
+ * androidTest) and keep every other real binding.
  */
 @Module
 @InstallIn(SingletonComponent::class)
-abstract class DataModule {
+abstract class PriceRepositoryModule {
 
     /** One repository for the whole app, backed by the database. */
     @Binds
     @Singleton
     abstract fun bindPriceRepository(repository: RoomPriceRepository): PriceRepository
+}
+
+/**
+ * Tells Hilt which class to hand out for each of the app's other
+ * interfaces, and where the prices come from.
+ */
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class DataModule {
 
     /** The prices server, through Retrofit. */
     @Binds
