@@ -11,6 +11,7 @@ object SamplePrices {
     private val day = LocalDate.of(2026, 11, 7)
 
     val lasalgaonOnion = CommodityPrice(
+        id = "lasalgaon-onion-2026-11-07",
         commodity = "Onion",
         market = "Lasalgaon APMC",
         date = day,
@@ -20,6 +21,7 @@ object SamplePrices {
     )
 
     val puneOnion = CommodityPrice(
+        id = "pune-onion-2026-11-07",
         commodity = "Onion",
         market = "Pune (Gultekdi) APMC",
         date = day,
@@ -29,6 +31,7 @@ object SamplePrices {
     )
 
     val nashikOnion = CommodityPrice(
+        id = "nashik-onion-2026-11-07",
         commodity = "Onion",
         market = "Nashik APMC",
         date = day,
@@ -38,6 +41,7 @@ object SamplePrices {
     )
 
     val puneTomato = CommodityPrice(
+        id = "pune-tomato-2026-11-07",
         commodity = "Tomato",
         market = "Pune (Gultekdi) APMC",
         date = day,
@@ -47,6 +51,7 @@ object SamplePrices {
     )
 
     val nashikTomato = CommodityPrice(
+        id = "nashik-tomato-2026-11-07",
         commodity = "Tomato",
         market = "Nashik APMC",
         date = day,
@@ -56,6 +61,7 @@ object SamplePrices {
     )
 
     val vashiPotato = CommodityPrice(
+        id = "vashi-potato-2026-11-07",
         commodity = "Potato",
         market = "Vashi APMC, Navi Mumbai",
         date = day,
@@ -65,6 +71,7 @@ object SamplePrices {
     )
 
     val vashiWheat = CommodityPrice(
+        id = "vashi-wheat-2026-11-07",
         commodity = "Wheat",
         market = "Vashi APMC, Navi Mumbai",
         date = day,
@@ -74,6 +81,7 @@ object SamplePrices {
     )
 
     val lasalgaonSoybean = CommodityPrice(
+        id = "lasalgaon-soybean-2026-11-07",
         commodity = "Soybean",
         market = "Lasalgaon APMC",
         date = day,
@@ -83,6 +91,7 @@ object SamplePrices {
     )
 
     val puneTur = CommodityPrice(
+        id = "pune-tur-dal-2026-11-07",
         commodity = "Tur dal",
         market = "Pune (Gultekdi) APMC",
         date = day,
@@ -101,5 +110,21 @@ object SamplePrices {
         vashiWheat,
         lasalgaonSoybean,
         puneTur,
+    )
+
+    /**
+     * The modal price over the last seven days for each price above, oldest
+     * first, keyed by price id. The last value is that price's modal price.
+     */
+    val weekOfModalPrices: Map<String, List<Long>> = mapOf(
+        lasalgaonOnion.id to listOf(2_310, 2_280, 2_350, 2_400, 2_380, 2_420, 2_450),
+        puneOnion.id to listOf(2_100, 2_150, 2_120, 2_180, 2_250, 2_230, 2_200),
+        nashikOnion.id to listOf(2_150, 2_200, 2_180, 2_260, 2_240, 2_280, 2_300),
+        puneTomato.id to listOf(1_800, 1_750, 1_700, 1_650, 1_600, 1_550, 1_500),
+        nashikTomato.id to listOf(1_350, 1_300, 1_320, 1_250, 1_280, 1_220, 1_200),
+        vashiPotato.id to listOf(2_050, 2_080, 2_060, 2_100, 2_090, 2_110, 2_100),
+        vashiWheat.id to listOf(2_960, 2_970, 2_980, 2_980, 2_990, 3_000, 3_000),
+        lasalgaonSoybean.id to listOf(4_480, 4_500, 4_520, 4_510, 4_540, 4_530, 4_550),
+        puneTur.id to listOf(7_100, 7_150, 7_200, 7_180, 7_250, 7_280, 7_300),
     )
 }

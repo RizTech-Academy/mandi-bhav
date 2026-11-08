@@ -1,18 +1,18 @@
 package com.riztechacademy.mandibhav.ui
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +21,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
@@ -32,7 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -52,6 +53,7 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun PricesRoute(
+    onPriceClick: (priceId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PricesViewModel = viewModel(),
 ) {
@@ -67,6 +69,7 @@ fun PricesRoute(
         onQueryChange = viewModel::onQueryChange,
         onCommodityClick = viewModel::onCommodityClick,
         onClearFilters = viewModel::clearFilters,
+        onPriceClick = onPriceClick,
         modifier = modifier,
     )
 }
@@ -87,6 +90,7 @@ fun PricesScreen(
     onQueryChange: (String) -> Unit,
     onCommodityClick: (String?) -> Unit,
     onClearFilters: () -> Unit,
+    onPriceClick: (priceId: String) -> Unit,
     modifier: Modifier = Modifier,
     windowSizeClass: WindowSizeClass = currentWindowAdaptiveInfoV2().windowSizeClass,
 ) {
@@ -94,15 +98,15 @@ fun PricesScreen(
         windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
     ) 2 else 1
 
-    val scrollState = rememberScrollState()
+    val gridState = rememberLazyGridState()
+    val layoutDirection = LocalLayoutDirection.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Recomposes this screen only when the answer flips, not on every
-    // pixel of scrolling.
-    val backToTopAfterPx = with(LocalDensity.current) { 400.dp.toPx() }
-    val showBackToTop by remember(backToTopAfterPx) {
-        derivedStateOf { scrollState.value > backToTopAfterPx }
+    // The index of the first visible item changes a few times per screenful,
+    // not on every pixel; derivedStateOf still turns it into one yes or no.
+    val showBackToTop by remember {
+        derivedStateOf { gridState.firstVisibleItemIndex > BACK_TO_TOP_AFTER_ITEMS }
     }
 
     // While nothing matches, offer to clear the filters. The effect restarts
@@ -132,65 +136,87 @@ fun PricesScreen(
         floatingActionButton = {
             if (showBackToTop) {
                 ExtendedFloatingActionButton(
-                    onClick = { scope.launch { scrollState.animateScrollTo(0) } },
+                    onClick = { scope.launch { gridState.animateScrollToItem(0) } },
                 ) {
                     Text("Back to top")
                 }
             }
         },
     ) { innerPadding ->
-        Column(
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(columns),
+            state = gridState,
+            // The top and sides go outside the scroll, so the sticky chips stop
+            // under the app bar. The bottom goes inside it: cards scroll behind
+            // the gesture handle, and the last one still ends clear of it.
             modifier = Modifier
-                .padding(innerPadding)
+                .padding(
+                    start = innerPadding.calculateStartPadding(layoutDirection),
+                    top = innerPadding.calculateTopPadding(),
+                    end = innerPadding.calculateEndPadding(layoutDirection),
+                )
                 .consumeWindowInsets(innerPadding)
-                .imePadding()
-                .verticalScroll(scrollState)
-                // 88 dp at the bottom lets the last card scroll clear of the
-                // "Back to top" button (56 dp tall, 16 dp from the edge).
-                .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 88.dp),
+                .imePadding(),
+            // 88 dp more at the bottom lets the last card scroll clear of the
+            // "Back to top" button (56 dp tall, 16 dp from the edge).
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                top = 8.dp,
+                end = 16.dp,
+                bottom = innerPadding.calculateBottomPadding() + 88.dp,
+            ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            PriceSearchField(
-                query = query,
-                onQueryChange = onQueryChange,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            CommodityChips(
-                commodities = commodities,
-                selected = selectedCommodity,
-                onCommodityClick = onCommodityClick,
-            )
-            if (noResults) {
-                Text(
-                    text = "No prices match \"${query.trim()}\".",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            item(key = "search", contentType = "search", span = { GridItemSpan(maxLineSpan) }) {
+                PriceSearchField(
+                    query = query,
+                    onQueryChange = onQueryChange,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
-            for (rowOfPrices in prices.chunked(columns)) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Min),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    for (price in rowOfPrices) {
-                        PriceCard(
-                            price = price,
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight(),
-                        )
-                    }
-                    // An odd last row keeps its card at column width.
-                    repeat(columns - rowOfPrices.size) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
+            stickyHeader(key = "chips", contentType = "chips") {
+                // A surface behind the chips, so cards do not show through
+                // when they scroll underneath.
+                Surface(modifier = Modifier.fillMaxWidth()) {
+                    CommodityChips(
+                        commodities = commodities,
+                        selected = selectedCommodity,
+                        onCommodityClick = { commodity ->
+                            onCommodityClick(commodity)
+                            // An event, so it is handled here, not in an effect:
+                            // a new filter starts from its first result.
+                            scope.launch { gridState.scrollToItem(0) }
+                        },
+                    )
                 }
+            }
+            if (noResults) {
+                item(key = "no-results", contentType = "message", span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        text = "No prices match \"${query.trim()}\".",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            items(
+                items = prices,
+                key = { price -> price.id },
+                contentType = { "price" },
+            ) { price ->
+                PriceCard(
+                    price = price,
+                    onClick = { onPriceClick(price.id) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }
 }
+
+/** Show "Back to top" once the search field and the first two cards have scrolled away. */
+private const val BACK_TO_TOP_AFTER_ITEMS = 3
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
@@ -204,6 +230,7 @@ private fun PricesScreenPreview() {
             onQueryChange = {},
             onCommodityClick = {},
             onClearFilters = {},
+            onPriceClick = {},
         )
     }
 }
@@ -220,6 +247,7 @@ private fun PricesScreenFilteredPreview() {
             onQueryChange = {},
             onCommodityClick = {},
             onClearFilters = {},
+            onPriceClick = {},
         )
     }
 }
@@ -238,6 +266,7 @@ private fun PricesScreenWidePreview() {
             onQueryChange = {},
             onCommodityClick = {},
             onClearFilters = {},
+            onPriceClick = {},
             windowSizeClass = WindowSizeClass(minWidthDp = 700, minHeightDp = 840),
         )
     }

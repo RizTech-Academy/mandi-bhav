@@ -2,9 +2,10 @@ package com.riztechacademy.mandibhav.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -34,10 +35,10 @@ fun PriceSearchField(
 }
 
 /**
- * "All" plus one chip per commodity. Stateless: [selected] is the chosen
- * commodity, or null for all, and a tap is reported to [onCommodityClick]
- * (null for "All"). Tapping the selected chip again is reported too; the
- * caller decides that it clears the filter.
+ * "All" plus one chip per commodity, in one line that scrolls sideways.
+ * Stateless: [selected] is the chosen commodity, or null for all, and a tap
+ * is reported to [onCommodityClick] (null for "All"). Tapping the selected
+ * chip again is reported too; the caller decides that it clears the filter.
  */
 @Composable
 fun CommodityChips(
@@ -46,16 +47,18 @@ fun CommodityChips(
     onCommodityClick: (String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    FlowRow(
+    LazyRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        FilterChip(
-            selected = selected == null,
-            onClick = { onCommodityClick(null) },
-            label = { Text("All") },
-        )
-        for (commodity in commodities) {
+        item(key = "all") {
+            FilterChip(
+                selected = selected == null,
+                onClick = { onCommodityClick(null) },
+                label = { Text("All") },
+            )
+        }
+        items(items = commodities, key = { it }) { commodity ->
             FilterChip(
                 selected = selected == commodity,
                 onClick = { onCommodityClick(commodity) },

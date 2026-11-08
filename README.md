@@ -10,8 +10,12 @@ It is the reference app for RizTech Academy's
 course. The course builds it module by module, and this repository holds the code as each module
 leaves it.
 
-The prices in `data/SamplePrices.kt` are realistic, not real. The app fetches real prices in the
-networking module.
+The app has three destinations, Prices, Markets and Alerts, in a navigation bar on a phone and a
+navigation rail from 600 dp wide. A price opens a detail screen with its last seven days. Alerts is
+a placeholder until the notifications module.
+
+The prices and the seven-day histories in `data/SamplePrices.kt` are realistic, not real. The app
+fetches real prices in the networking module.
 
 ## Running it
 
@@ -54,7 +58,9 @@ running app and none of the understanding the module is for.
 | Compose BOM | 2026.09.00 (Compose 1.12, Material 3 1.4, Material 3 adaptive 1.3) |
 | activity-compose | 1.13.0 |
 | core-ktx | 1.19.1 |
-| lifecycle (runtime, viewmodel-compose, runtime-compose) | 2.11.0 |
+| lifecycle (runtime, viewmodel-compose, runtime-compose, viewmodel-navigation3) | 2.11.0 |
+| Navigation 3 (navigation3-runtime, navigation3-ui) | 1.2.1 |
+| kotlinx-serialization-core (with the Kotlin serialization plugin) | 1.12.0 |
 | kotlinx-coroutines (android, test) | 1.11.0 |
 | compileSdk | 37.2 |
 | targetSdk | 36 |
