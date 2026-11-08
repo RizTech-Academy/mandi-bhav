@@ -1,5 +1,6 @@
 package com.riztechacademy.mandibhav.ui
 
+import com.riztechacademy.mandibhav.data.RefreshFailure
 import com.riztechacademy.mandibhav.model.CommodityPrice
 import java.time.Instant
 
@@ -30,7 +31,14 @@ data class PricesUiState(
     val isRefreshing: Boolean = false,
     /** A message to show once, such as "3 prices updated.", until the screen says it has. */
     val userMessage: String? = null,
+    /** Why the last refresh failed; null if it succeeded or none has run. */
+    val refreshFailure: RefreshFailure? = null,
+    /** Whether the phone has a working connection. */
+    val isOnline: Boolean = true,
 ) {
+    /** A phone with nothing saved is downloading for the first time: the screen says so in full. */
+    val isFirstDownload: Boolean get() = noSavedPrices && isRefreshing
+
     /**
      * The filters match nothing. Not while loading, when nothing has been
      * matched yet, and not when there is nothing saved to match against.

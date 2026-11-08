@@ -5,8 +5,9 @@ import com.riztechacademy.mandibhav.model.DayPrice
 import java.time.LocalDate
 
 /**
- * Hard-coded prices for building the screen. Realistic, not real: the app
- * fetches real prices in the networking module.
+ * Hard-coded prices for previews and tests. Realistic, not real. The app
+ * itself downloads its prices from the API in this repository's api/ folder,
+ * whose 7 November file holds the same values as [latest].
  */
 object SamplePrices {
     private val day = LocalDate.of(2026, 11, 7)

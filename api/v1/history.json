@@ -1,0 +1,387 @@
+{
+  "schema_version": 1,
+  "from": "2026-11-01",
+  "to": "2026-11-07",
+  "unit": "rupees per quintal",
+  "source": "Sample prices for the Mandi Bhav course app, in the shape of the APMC daily prices published on data.gov.in. Realistic, not real: do not trade on them.",
+  "history": [
+    {
+      "market": "Lasalgaon APMC",
+      "commodity": "Onion",
+      "date": "2026-11-01",
+      "modal_price": 2310
+    },
+    {
+      "market": "Lasalgaon APMC",
+      "commodity": "Onion",
+      "date": "2026-11-02",
+      "modal_price": 2280
+    },
+    {
+      "market": "Lasalgaon APMC",
+      "commodity": "Onion",
+      "date": "2026-11-03",
+      "modal_price": 2350
+    },
+    {
+      "market": "Lasalgaon APMC",
+      "commodity": "Onion",
+      "date": "2026-11-04",
+      "modal_price": 2400
+    },
+    {
+      "market": "Lasalgaon APMC",
+      "commodity": "Onion",
+      "date": "2026-11-05",
+      "modal_price": 2380
+    },
+    {
+      "market": "Lasalgaon APMC",
+      "commodity": "Onion",
+      "date": "2026-11-06",
+      "modal_price": 2420
+    },
+    {
+      "market": "Lasalgaon APMC",
+      "commodity": "Onion",
+      "date": "2026-11-07",
+      "modal_price": 2525
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Onion",
+      "date": "2026-11-01",
+      "modal_price": 2100
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Onion",
+      "date": "2026-11-02",
+      "modal_price": 2150
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Onion",
+      "date": "2026-11-03",
+      "modal_price": 2120
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Onion",
+      "date": "2026-11-04",
+      "modal_price": 2180
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Onion",
+      "date": "2026-11-05",
+      "modal_price": 2250
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Onion",
+      "date": "2026-11-06",
+      "modal_price": 2230
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Onion",
+      "date": "2026-11-07",
+      "modal_price": 2200
+    },
+    {
+      "market": "Nashik APMC",
+      "commodity": "Onion",
+      "date": "2026-11-01",
+      "modal_price": 2150
+    },
+    {
+      "market": "Nashik APMC",
+      "commodity": "Onion",
+      "date": "2026-11-02",
+      "modal_price": 2200
+    },
+    {
+      "market": "Nashik APMC",
+      "commodity": "Onion",
+      "date": "2026-11-03",
+      "modal_price": 2180
+    },
+    {
+      "market": "Nashik APMC",
+      "commodity": "Onion",
+      "date": "2026-11-04",
+      "modal_price": 2260
+    },
+    {
+      "market": "Nashik APMC",
+      "commodity": "Onion",
+      "date": "2026-11-05",
+      "modal_price": 2240
+    },
+    {
+      "market": "Nashik APMC",
+      "commodity": "Onion",
+      "date": "2026-11-06",
+      "modal_price": 2280
+    },
+    {
+      "market": "Nashik APMC",
+      "commodity": "Onion",
+      "date": "2026-11-07",
+      "modal_price": 2560
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Tomato",
+      "date": "2026-11-01",
+      "modal_price": 1800
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Tomato",
+      "date": "2026-11-02",
+      "modal_price": 1750
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Tomato",
+      "date": "2026-11-03",
+      "modal_price": 1700
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Tomato",
+      "date": "2026-11-04",
+      "modal_price": 1650
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Tomato",
+      "date": "2026-11-05",
+      "modal_price": 1600
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Tomato",
+      "date": "2026-11-06",
+      "modal_price": 1550
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Tomato",
+      "date": "2026-11-07",
+      "modal_price": 1450
+    },
+    {
+      "market": "Nashik APMC",
+      "commodity": "Tomato",
+      "date": "2026-11-01",
+      "modal_price": 1350
+    },
+    {
+      "market": "Nashik APMC",
+      "commodity": "Tomato",
+      "date": "2026-11-02",
+      "modal_price": 1300
+    },
+    {
+      "market": "Nashik APMC",
+      "commodity": "Tomato",
+      "date": "2026-11-03",
+      "modal_price": 1320
+    },
+    {
+      "market": "Nashik APMC",
+      "commodity": "Tomato",
+      "date": "2026-11-04",
+      "modal_price": 1250
+    },
+    {
+      "market": "Nashik APMC",
+      "commodity": "Tomato",
+      "date": "2026-11-05",
+      "modal_price": 1280
+    },
+    {
+      "market": "Nashik APMC",
+      "commodity": "Tomato",
+      "date": "2026-11-06",
+      "modal_price": 1220
+    },
+    {
+      "market": "Nashik APMC",
+      "commodity": "Tomato",
+      "date": "2026-11-07",
+      "modal_price": 1200
+    },
+    {
+      "market": "Vashi APMC, Navi Mumbai",
+      "commodity": "Potato",
+      "date": "2026-11-01",
+      "modal_price": 2050
+    },
+    {
+      "market": "Vashi APMC, Navi Mumbai",
+      "commodity": "Potato",
+      "date": "2026-11-02",
+      "modal_price": 2080
+    },
+    {
+      "market": "Vashi APMC, Navi Mumbai",
+      "commodity": "Potato",
+      "date": "2026-11-03",
+      "modal_price": 2060
+    },
+    {
+      "market": "Vashi APMC, Navi Mumbai",
+      "commodity": "Potato",
+      "date": "2026-11-04",
+      "modal_price": 2100
+    },
+    {
+      "market": "Vashi APMC, Navi Mumbai",
+      "commodity": "Potato",
+      "date": "2026-11-05",
+      "modal_price": 2090
+    },
+    {
+      "market": "Vashi APMC, Navi Mumbai",
+      "commodity": "Potato",
+      "date": "2026-11-06",
+      "modal_price": 2110
+    },
+    {
+      "market": "Vashi APMC, Navi Mumbai",
+      "commodity": "Potato",
+      "date": "2026-11-07",
+      "modal_price": 2100
+    },
+    {
+      "market": "Vashi APMC, Navi Mumbai",
+      "commodity": "Wheat",
+      "date": "2026-11-01",
+      "modal_price": 2960
+    },
+    {
+      "market": "Vashi APMC, Navi Mumbai",
+      "commodity": "Wheat",
+      "date": "2026-11-02",
+      "modal_price": 2970
+    },
+    {
+      "market": "Vashi APMC, Navi Mumbai",
+      "commodity": "Wheat",
+      "date": "2026-11-03",
+      "modal_price": 2980
+    },
+    {
+      "market": "Vashi APMC, Navi Mumbai",
+      "commodity": "Wheat",
+      "date": "2026-11-04",
+      "modal_price": 2980
+    },
+    {
+      "market": "Vashi APMC, Navi Mumbai",
+      "commodity": "Wheat",
+      "date": "2026-11-05",
+      "modal_price": 2990
+    },
+    {
+      "market": "Vashi APMC, Navi Mumbai",
+      "commodity": "Wheat",
+      "date": "2026-11-06",
+      "modal_price": 3000
+    },
+    {
+      "market": "Vashi APMC, Navi Mumbai",
+      "commodity": "Wheat",
+      "date": "2026-11-07",
+      "modal_price": 3000
+    },
+    {
+      "market": "Lasalgaon APMC",
+      "commodity": "Soybean",
+      "date": "2026-11-01",
+      "modal_price": 4480
+    },
+    {
+      "market": "Lasalgaon APMC",
+      "commodity": "Soybean",
+      "date": "2026-11-02",
+      "modal_price": 4500
+    },
+    {
+      "market": "Lasalgaon APMC",
+      "commodity": "Soybean",
+      "date": "2026-11-03",
+      "modal_price": 4520
+    },
+    {
+      "market": "Lasalgaon APMC",
+      "commodity": "Soybean",
+      "date": "2026-11-04",
+      "modal_price": 4510
+    },
+    {
+      "market": "Lasalgaon APMC",
+      "commodity": "Soybean",
+      "date": "2026-11-05",
+      "modal_price": 4540
+    },
+    {
+      "market": "Lasalgaon APMC",
+      "commodity": "Soybean",
+      "date": "2026-11-06",
+      "modal_price": 4530
+    },
+    {
+      "market": "Lasalgaon APMC",
+      "commodity": "Soybean",
+      "date": "2026-11-07",
+      "modal_price": 4550
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Tur dal",
+      "date": "2026-11-01",
+      "modal_price": 7100
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Tur dal",
+      "date": "2026-11-02",
+      "modal_price": 7150
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Tur dal",
+      "date": "2026-11-03",
+      "modal_price": 7200
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Tur dal",
+      "date": "2026-11-04",
+      "modal_price": 7180
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Tur dal",
+      "date": "2026-11-05",
+      "modal_price": 7250
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Tur dal",
+      "date": "2026-11-06",
+      "modal_price": 7280
+    },
+    {
+      "market": "Pune (Gultekdi) APMC",
+      "commodity": "Tur dal",
+      "date": "2026-11-07",
+      "modal_price": 7300
+    }
+  ]
+}

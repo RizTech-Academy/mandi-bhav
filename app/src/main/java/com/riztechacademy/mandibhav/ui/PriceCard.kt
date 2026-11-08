@@ -5,6 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -60,8 +66,41 @@ fun PriceCard(
 
 @Composable
 private fun PriceCardContent(price: CommodityPrice) {
-    Column(
+    Row(
         modifier = Modifier.padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        CommodityThumbnail(url = price.thumbnailUrl)
+        PriceCardText(price, modifier = Modifier.weight(1f))
+    }
+}
+
+/**
+ * The commodity's picture, 56 dp square. Decorative: the card's description
+ * already says what it is, so TalkBack skips it. Coil decodes it at the size
+ * it is drawn, not the size it was sent, and while it loads, or if it never
+ * does, the square stays a plain surface: no broken-image icon on a slow
+ * connection.
+ */
+@Composable
+private fun CommodityThumbnail(url: String?) {
+    AsyncImage(
+        model = url,
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant),
+        error = ColorPainter(MaterialTheme.colorScheme.surfaceVariant),
+        fallback = ColorPainter(MaterialTheme.colorScheme.surfaceVariant),
+        modifier = Modifier
+            .size(56.dp)
+            .clip(RoundedCornerShape(8.dp)),
+    )
+}
+
+@Composable
+private fun PriceCardText(price: CommodityPrice, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(

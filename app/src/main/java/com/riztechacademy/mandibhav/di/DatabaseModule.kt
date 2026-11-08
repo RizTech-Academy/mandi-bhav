@@ -6,7 +6,6 @@ import androidx.sqlite.driver.AndroidSQLiteDriver
 import com.riztechacademy.mandibhav.data.local.MIGRATION_1_2
 import com.riztechacademy.mandibhav.data.local.MandiBhavDatabase
 import com.riztechacademy.mandibhav.data.local.PriceDao
-import com.riztechacademy.mandibhav.data.local.SeedDatabase
 import dagger.Module
 import java.time.Clock
 import dagger.Provides
@@ -26,7 +25,6 @@ object DatabaseModule {
         Room.databaseBuilder<MandiBhavDatabase>(context, "mandi-bhav.db")
             .setDriver(AndroidSQLiteDriver())
             .addMigrations(MIGRATION_1_2)
-            .addCallback(SeedDatabase)
             .build()
 
     @Provides

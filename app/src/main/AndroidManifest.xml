@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Lets the app ask whether there is a connection before a refresh. -->
+    <!-- Downloads the prices and the commodity pictures. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Lets the app tell "no connection" from "server down", and sync when the connection returns. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application

@@ -50,9 +50,17 @@ interface PriceDao {
     @Query("SELECT * FROM prices")
     suspend fun getAll(): List<PriceEntity>
 
+    /** The date of the newest price saved; null when the phone has none. */
+    @Query("SELECT MAX(date) FROM prices")
+    suspend fun newestDate(): LocalDate?
+
     /** Adds a row for each market not already in the table; leaves the rest alone. */
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertMarketsIfMissing(markets: List<MarketEntity>)
+
+    /** Writes each market, replacing the district of one already saved. */
+    @Upsert
+    suspend fun upsertMarkets(markets: List<MarketEntity>)
 
     /** Inserts each price, or replaces the row that already has its id. */
     @Upsert
@@ -61,18 +69,45 @@ interface PriceDao {
     @Upsert
     suspend fun upsertHistory(history: List<PriceHistoryEntity>)
 
+    @Query("DELETE FROM prices WHERE id IN (:ids)")
+    suspend fun deletePrices(ids: List<String>)
+
     /**
-     * Writes [prices] and returns how many differ from what was stored, all
-     * in one transaction, so nothing can change the table in between.
+     * Saves one download in one transaction and returns how many prices
+     * changed.
+     *
+     * `prices` holds one row per commodity and market: today's. When a
+     * newer day's price arrives, the row it replaces has a different id
+     * (the id carries the date), so upserting alone would keep both and the
+     * list would show yesterday's onion beside today's. Instead the old row's
+     * modal price moves into `price_history`, and the row is deleted.
+     * [history] from the server is written after that, so where both have
+     * a day, the server's closing price wins over what the phone last saw.
      */
     @Transaction
-    suspend fun upsertAndCountChanges(prices: List<PriceEntity>): Int {
-        val before = getAll().associateBy { it.id }
+    suspend fun saveDownload(
+        prices: List<PriceEntity>,
+        markets: List<MarketEntity> = emptyList(),
+        history: List<PriceHistoryEntity> = emptyList(),
+    ): Int {
+        val before = getAll()
+        upsertMarkets(markets)
         // A price whose market has no row would never appear on the Markets
         // tab, because the relation starts from the markets table.
         insertMarketsIfMissing(prices.map { it.market }.distinct().map { MarketEntity(name = it, district = "") })
+
+        val incoming = prices.associateBy { it.market to it.commodity }
+        val replaced = before.filter { old ->
+            val new = incoming[old.market to old.commodity]
+            new != null && new.date > old.date
+        }
+        upsertHistory(replaced.map { PriceHistoryEntity(it.market, it.commodity, it.date, it.modalPrice) })
+        deletePrices(replaced.map { it.id })
+        upsertHistory(history)
         upsertPrices(prices)
+
+        val beforeById = before.associateBy { it.id }
         // A price is changed if anything but the time it was fetched differs.
-        return prices.count { before[it.id]?.copy(fetchedAt = it.fetchedAt) != it }
+        return prices.count { beforeById[it.id]?.copy(fetchedAt = it.fetchedAt) != it }
     }
 }

@@ -6,6 +6,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -121,6 +126,24 @@ private fun PriceDetailContent(detail: PriceWeek, bestMarket: CommodityPrice?, i
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        price.photoUrl?.let { url ->
+            item(key = "photo") {
+                // 3:2, as the server's photos are; Coil decodes it at the
+                // width it is drawn, at most 600 dp.
+                AsyncImage(
+                    model = url,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant),
+                    error = ColorPainter(MaterialTheme.colorScheme.surfaceVariant),
+                    modifier = Modifier
+                        .widthIn(max = 600.dp)
+                        .fillMaxWidth()
+                        .aspectRatio(3f / 2f)
+                        .clip(RoundedCornerShape(12.dp)),
+                )
+            }
+        }
         item(key = "today") {
             Column(
                 modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),

@@ -10,6 +10,9 @@ import java.time.LocalDate
  *
  * [id] identifies this price and nothing else: a list uses it as the item key,
  * and navigation passes it to the detail screen instead of the whole object.
+ *
+ * [thumbnailUrl] and [photoUrl] are pictures of the commodity, small for a
+ * card and large for the detail screen; null when the server sent none.
  */
 data class CommodityPrice(
     val id: String,
@@ -19,4 +22,6 @@ data class CommodityPrice(
     val minPrice: Long,
     val maxPrice: Long,
     val modalPrice: Long,
+    val thumbnailUrl: String? = null,
+    val photoUrl: String? = null,
 )

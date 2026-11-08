@@ -1,6 +1,16 @@
 package com.riztechacademy.mandibhav.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import com.riztechacademy.mandibhav.data.RefreshFailure
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
@@ -130,11 +140,18 @@ fun PricesScreen(
     // A one-time message from the ViewModel, such as "3 prices updated.". It
     // stays in the state until it has been shown, so a rotation in the
     // middle shows it again rather than losing it.
+    // A failed refresh's message offers "Retry" in the snackbar itself.
     uiState.userMessage?.let { message ->
         val currentOnUserMessageShown by rememberUpdatedState(onUserMessageShown)
+        val currentOnRefresh by rememberUpdatedState(onRefresh)
+        val canRetry = uiState.refreshFailure != null
         LaunchedEffect(message) {
-            snackbarHostState.showSnackbar(message)
+            val result = snackbarHostState.showSnackbar(
+                message = message,
+                actionLabel = if (canRetry) "Retry" else null,
+            )
             currentOnUserMessageShown()
+            if (result == SnackbarResult.ActionPerformed) currentOnRefresh()
         }
     }
 
@@ -161,7 +178,9 @@ fun PricesScreen(
             }
         },
     ) { innerPadding ->
-        if (uiState.isLoading || uiState.isRefreshing) {
+        // The thin bar under the app bar is for a refresh over prices that are
+        // already on screen. A first download says so in the body instead.
+        if (uiState.isLoading || (uiState.isRefreshing && !uiState.isFirstDownload)) {
             LinearProgressIndicator(
                 modifier = Modifier
                     .padding(top = innerPadding.calculateTopPadding())
@@ -216,16 +235,17 @@ fun PricesScreen(
                     )
                 }
             }
-            if (!uiState.isLoading) {
+            if (!uiState.isLoading && !uiState.noSavedPrices) {
                 item(key = "updated", contentType = "message", span = { GridItemSpan(maxLineSpan) }) {
-                    UpdatedText(lastUpdated = uiState.lastUpdated)
+                    UpdatedText(lastUpdated = uiState.lastUpdated, isOnline = uiState.isOnline)
                 }
             }
             if (uiState.noSavedPrices) {
                 item(key = "nothing-saved", contentType = "message", span = { GridItemSpan(maxLineSpan) }) {
-                    Text(
-                        text = "No prices saved on this phone yet. Tap Refresh to download today's.",
-                        style = MaterialTheme.typography.bodyLarge,
+                    NothingSaved(
+                        isDownloading = uiState.isRefreshing,
+                        failure = uiState.refreshFailure,
+                        onRetry = onRefresh,
                     )
                 }
             }
@@ -272,23 +292,86 @@ fun PricesScreen(
  * [STALE_AFTER]. "Now" is read when this is drawn; it is not a ticking clock.
  */
 @Composable
-private fun UpdatedText(lastUpdated: Instant?) {
+private fun UpdatedText(lastUpdated: Instant?, isOnline: Boolean) {
     val label = updatedLabel(
         lastUpdated = lastUpdated,
         now = Instant.now(),
         zone = ZoneId.systemDefault(),
         locale = LocalConfiguration.current.locales[0],
     )
-    Text(
-        text = if (label.isStale && lastUpdated != null) "${label.text}. May be out of date." else label.text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = if (label.isStale) {
-            MaterialTheme.colorScheme.error
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        },
-    )
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        if (!isOnline) {
+            Text(
+                text = "Offline. Showing the prices saved on this phone.",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        Text(
+            text = if (label.isStale && lastUpdated != null) "${label.text}. May be out of date." else label.text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (label.isStale) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        )
+    }
 }
+
+/**
+ * The body of a phone with no prices saved: downloading, failed, or waiting.
+ * Loading on a slow connection is the case module 7 left open. Under a
+ * second it needs nothing more than the spinner; after [SLOW_AFTER_MILLIS] the
+ * screen says that it is slow, so a farmer on weak data knows the app has
+ * not frozen and that waiting is worth it.
+ */
+@Composable
+private fun NothingSaved(isDownloading: Boolean, failure: RefreshFailure?, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        when {
+            isDownloading -> {
+                var isSlow by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    delay(SLOW_AFTER_MILLIS)
+                    isSlow = true
+                }
+                CircularProgressIndicator()
+                Text("Downloading today's prices…", style = MaterialTheme.typography.titleMedium)
+                if (isSlow) {
+                    Text(
+                        text = "This is taking a while; the connection is slow. Once they arrive, " +
+                            "the prices are saved and open instantly next time.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+            failure != null -> {
+                Text(
+                    text = refreshFailureMessage(failure, hasSavedPrices = false),
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                )
+                Button(onClick = onRetry) { Text("Try again") }
+            }
+            else -> Text(
+                text = "No prices saved on this phone yet. Tap Refresh to download today's.",
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
+/** How long a first download runs before the screen says the connection is slow. */
+private const val SLOW_AFTER_MILLIS = 5_000L
 
 /** Show "Back to top" once the search field and the first two cards have scrolled away. */
 private const val BACK_TO_TOP_AFTER_ITEMS = 3

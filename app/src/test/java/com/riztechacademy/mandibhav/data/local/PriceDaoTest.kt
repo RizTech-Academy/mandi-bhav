@@ -67,8 +67,8 @@ class PriceDaoTest {
     fun countsOnlyThePricesThatChanged() = runTest {
         dao.upsertPrices(SamplePrices.all.map { it.asEntity() })
 
-        assertEquals(3, dao.upsertAndCountChanges(SamplePrices.latest.map { it.asEntity() }))
-        assertEquals(0, dao.upsertAndCountChanges(SamplePrices.latest.map { it.asEntity() }))
+        assertEquals(3, dao.saveDownload(SamplePrices.latest.map { it.asEntity() }))
+        assertEquals(0, dao.saveDownload(SamplePrices.latest.map { it.asEntity() }))
     }
 
     @Test
@@ -119,5 +119,39 @@ class PriceDaoTest {
 
         assertEquals(listOf<Long?>(2_450, 2_450), seen)
         watching.cancel()
+    }
+
+    @Test
+    fun aNewDayMovesYesterdaysPriceIntoTheHistoryInsteadOfKeepingBoth() = runTest {
+        dao.saveDownload(listOf(SamplePrices.lasalgaonOnion.asEntity()))
+        val tomorrow = SamplePrices.lasalgaonOnion.copy(
+            id = "lasalgaon-onion-2026-11-08",
+            date = SamplePrices.lasalgaonOnion.date.plusDays(1),
+            modalPrice = 2_580,
+        )
+
+        dao.saveDownload(listOf(tomorrow.asEntity()))
+
+        assertEquals(listOf(tomorrow.id), dao.getAll().map { it.id })
+        val history = dao.observeHistory(
+            market = "Lasalgaon APMC",
+            commodity = "Onion",
+            from = SamplePrices.lasalgaonOnion.date,
+            to = SamplePrices.lasalgaonOnion.date,
+        ).first()
+        assertEquals(listOf(2_450L), history.map { it.modalPrice })
+    }
+
+    @Test
+    fun theServersHistoryWinsOverThePriceThePhoneLastSaw() = runTest {
+        // The phone saved the morning's 2,450; the day closed at 2,525.
+        dao.saveDownload(listOf(SamplePrices.lasalgaonOnion.asEntity()))
+        val tomorrow = SamplePrices.lasalgaonOnion.copy(id = "lasalgaon-onion-2026-11-08", date = SamplePrices.lasalgaonOnion.date.plusDays(1))
+        val closing = PriceHistoryEntity("Lasalgaon APMC", "Onion", SamplePrices.lasalgaonOnion.date, 2_525)
+
+        dao.saveDownload(listOf(tomorrow.asEntity()), history = listOf(closing))
+
+        val day = SamplePrices.lasalgaonOnion.date
+        assertEquals(listOf(closing), dao.observeHistory("Lasalgaon APMC", "Onion", day, day).first())
     }
 }

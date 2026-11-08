@@ -11,11 +11,13 @@ import androidx.room3.RoomDatabase
  */
 @Database(
     entities = [PriceEntity::class, PriceHistoryEntity::class, MarketEntity::class],
-    version = 3,
+    version = 4,
     autoMigrations = [
         // 2 to 3 adds one nullable column, prices.fetchedAt: Room can work
         // that out from the two exported schemas.
         AutoMigration(from = 2, to = 3),
+        // 3 to 4 adds two more, the commodity's picture URLs (module 9).
+        AutoMigration(from = 3, to = 4),
     ],
 )
 @ColumnTypeConverters(Converters::class)

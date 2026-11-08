@@ -2,7 +2,9 @@ package com.riztechacademy.mandibhav.ui
 
 import androidx.lifecycle.SavedStateHandle
 import com.riztechacademy.mandibhav.MainDispatcherRule
+import com.riztechacademy.mandibhav.data.FakeNetworkMonitor
 import com.riztechacademy.mandibhav.data.FakePriceRepository
+import com.riztechacademy.mandibhav.data.RefreshFailure
 import com.riztechacademy.mandibhav.data.FakeUserPreferencesRepository
 import com.riztechacademy.mandibhav.data.SamplePrices
 import com.riztechacademy.mandibhav.domain.FindBestMarketUseCase
@@ -14,6 +16,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -27,7 +30,8 @@ class PricesViewModelTest {
         handle: SavedStateHandle = SavedStateHandle(),
         repository: FakePriceRepository = FakePriceRepository(),
         preferences: FakeUserPreferencesRepository = FakeUserPreferencesRepository(),
-    ) = PricesViewModel(handle, repository, FindBestMarketUseCase(repository), preferences)
+        networkMonitor: FakeNetworkMonitor = FakeNetworkMonitor(),
+    ) = PricesViewModel(handle, repository, FindBestMarketUseCase(repository), preferences, networkMonitor)
 
     /**
      * uiState only updates while someone collects it
@@ -235,5 +239,113 @@ class PricesViewModelTest {
 
         assertEquals(true, viewModel.uiState.value.noSavedPrices)
         assertFalse(viewModel.uiState.value.noResults)
+    }
+
+    @Test
+    fun anEmptyPhoneDownloadsTodaysPricesWithoutATap() = runTest {
+        val repository = FakePriceRepository(prices = emptyList(), pricesAfterRefresh = SamplePrices.all)
+        val viewModel = newViewModel(repository = repository)
+        collectUiState(viewModel)
+
+        assertEquals(1, repository.refreshCount)
+        assertEquals(SamplePrices.all, viewModel.uiState.value.prices)
+        assertFalse(viewModel.uiState.value.noSavedPrices)
+    }
+
+    @Test
+    fun aPhoneWithSavedPricesDoesNotDownloadOnOpen() = runTest {
+        val repository = FakePriceRepository()
+        val viewModel = newViewModel(repository = repository)
+        collectUiState(viewModel)
+
+        assertEquals(0, repository.refreshCount)
+    }
+
+    @Test
+    fun aFailedFirstDownloadIsShownInTheBodyNotASnackbar() = runTest {
+        val repository = FakePriceRepository(prices = emptyList()).apply { failure = RefreshFailure.Server(503) }
+        val viewModel = newViewModel(repository = repository)
+        collectUiState(viewModel)
+
+        val state = viewModel.uiState.value
+        assertTrue(state.noSavedPrices)
+        assertEquals(RefreshFailure.Server(503), state.refreshFailure)
+        assertNull(state.userMessage)
+        assertFalse(state.isRefreshing)
+    }
+
+    @Test
+    fun aServerErrorOverSavedPricesSaysWhatHappened() = runTest {
+        val repository = FakePriceRepository().apply { failure = RefreshFailure.Server(503) }
+        val viewModel = newViewModel(repository = repository)
+        collectUiState(viewModel)
+
+        viewModel.refresh()
+
+        assertEquals(
+            "The prices server has a problem (error 503). Try again later.",
+            viewModel.uiState.value.userMessage,
+        )
+        assertEquals(SamplePrices.all, viewModel.uiState.value.prices)
+    }
+
+    @Test
+    fun aSuccessfulRefreshClearsTheLastFailure() = runTest {
+        val repository = FakePriceRepository().apply { failure = RefreshFailure.Timeout }
+        val viewModel = newViewModel(repository = repository)
+        collectUiState(viewModel)
+        viewModel.refresh()
+        assertEquals(RefreshFailure.Timeout, viewModel.uiState.value.refreshFailure)
+
+        repository.failure = null
+        viewModel.refresh()
+
+        assertNull(viewModel.uiState.value.refreshFailure)
+    }
+
+    @Test
+    fun backOnlineAfterAFailedRefreshItTriesAgainByItself() = runTest {
+        val network = FakeNetworkMonitor(online = false)
+        val repository = FakePriceRepository(prices = emptyList(), pricesAfterRefresh = SamplePrices.all)
+            .apply { offline = true }
+        val viewModel = newViewModel(repository = repository, networkMonitor = network)
+        collectUiState(viewModel)
+        assertEquals(RefreshFailure.NoConnection, viewModel.uiState.value.refreshFailure)
+        assertFalse(viewModel.uiState.value.isOnline)
+
+        repository.offline = false
+        network.online = true
+
+        assertEquals(2, repository.refreshCount)
+        assertEquals(SamplePrices.all, viewModel.uiState.value.prices)
+        assertNull(viewModel.uiState.value.refreshFailure)
+    }
+
+    @Test
+    fun backOnlineWithNothingFailedDoesNotRefresh() = runTest {
+        val network = FakeNetworkMonitor(online = false)
+        val repository = FakePriceRepository()
+        val viewModel = newViewModel(repository = repository, networkMonitor = network)
+        collectUiState(viewModel)
+
+        network.online = true
+
+        assertEquals(0, repository.refreshCount)
+    }
+
+    @Test
+    fun nobodyWatchingNobodySyncs() = runTest {
+        // The connection comes back while no screen collects the state:
+        // nothing is watching the network, so nothing refreshes.
+        val network = FakeNetworkMonitor(online = false)
+        val repository = FakePriceRepository().apply { offline = true }
+        val viewModel = newViewModel(repository = repository, networkMonitor = network)
+        viewModel.refresh()
+        assertEquals(1, repository.refreshCount)
+
+        repository.offline = false
+        network.online = true
+
+        assertEquals(1, repository.refreshCount)
     }
 }

@@ -3,12 +3,14 @@ package com.riztechacademy.mandibhav.ui
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.riztechacademy.mandibhav.data.NetworkMonitor
 import com.riztechacademy.mandibhav.data.PriceRepository
+import com.riztechacademy.mandibhav.data.RefreshException
+import com.riztechacademy.mandibhav.data.RefreshFailure
 import com.riztechacademy.mandibhav.data.UserPreferencesRepository
 import com.riztechacademy.mandibhav.domain.FindBestMarketUseCase
 import com.riztechacademy.mandibhav.model.CommodityPrice
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.io.IOException
 import java.time.Instant
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -17,7 +19,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -28,6 +32,11 @@ import kotlinx.coroutines.launch
  * The search query and the chosen commodity are kept in [savedStateHandle],
  * so they come back after Android kills the process. The prices are data:
  * they come from the repository, and follow it when it changes.
+ *
+ * A phone with no prices saved downloads them as soon as the screen is
+ * created; after a refresh that failed for want of a connection, the
+ * screen tries again by itself when the connection comes back, but only
+ * while someone is looking at it.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -36,14 +45,36 @@ class PricesViewModel @Inject constructor(
     private val repository: PriceRepository,
     private val findBestMarket: FindBestMarketUseCase,
     preferences: UserPreferencesRepository,
+    networkMonitor: NetworkMonitor,
 ) : ViewModel() {
 
-    /** What the refresh button has set going: whether it is running, and what to tell the user. */
-    private data class RefreshStatus(val isRefreshing: Boolean = false, val userMessage: String? = null)
+    /**
+     * What the last refresh did: whether one is running, what to tell the
+     * user, and why it failed, if it did. The failure stays until a refresh
+     * succeeds, because an empty screen shows it for as long as it is true.
+     */
+    private data class RefreshStatus(
+        val isRefreshing: Boolean = false,
+        val userMessage: String? = null,
+        val failure: RefreshFailure? = null,
+    )
+
+    /** The search field and the chip, together: they always change the list together. */
+    private data class Filter(val query: String, val commodity: String?)
 
     private val query = savedStateHandle.getStateFlow(KEY_QUERY, "")
     private val selectedCommodity = savedStateHandle.getStateFlow<String?>(KEY_COMMODITY, null)
+    private val filter = combine(query, selectedCommodity, ::Filter)
     private val refreshStatus = MutableStateFlow(RefreshStatus())
+
+    /**
+     * Whether the phone is online. Part of the screen's state, so it is only
+     * watched while the screen is (WhileSubscribed, below). When it comes
+     * back after a refresh failed for want of a connection, refresh again.
+     */
+    private val isOnline = networkMonitor.isOnline.onEach { online ->
+        if (online && refreshStatus.value.failure == RefreshFailure.NoConnection) refresh()
+    }
 
     /** The best market for the chosen commodity; switches when the chip does. */
     private val bestMarket = selectedCommodity.flatMapLatest { commodity ->
@@ -66,8 +97,8 @@ class PricesViewModel @Inject constructor(
     /** The whole screen. Each input above changes it; nothing else does. */
     val uiState: StateFlow<PricesUiState> =
         combine(
-            savedData, query, selectedCommodity, bestMarket, refreshStatus,
-        ) { (prices, home, lastUpdated), query, commodity, best, status ->
+            savedData, filter, bestMarket, refreshStatus, isOnline,
+        ) { (prices, home, lastUpdated), (query, commodity), best, status, online ->
             PricesUiState(
                 isLoading = false,
                 query = query,
@@ -80,6 +111,8 @@ class PricesViewModel @Inject constructor(
                 bestMarket = best,
                 isRefreshing = status.isRefreshing,
                 userMessage = status.userMessage,
+                refreshFailure = status.failure,
+                isOnline = online,
             )
         }.stateIn(
             scope = viewModelScope,
@@ -94,6 +127,15 @@ class PricesViewModel @Inject constructor(
                 selectedCommodity = selectedCommodity.value,
             ),
         )
+
+    init {
+        viewModelScope.launch {
+            // A new install has nothing to show, so it downloads today's
+            // prices without waiting for a tap. Once per ViewModel: a
+            // rotation keeps it, so this does not run again.
+            if (repository.todaysPrices().first().isEmpty()) refresh()
+        }
+    }
 
     fun onQueryChange(newQuery: String) {
         savedStateHandle[KEY_QUERY] = newQuery
@@ -126,11 +168,19 @@ class PricesViewModel @Inject constructor(
                     1 -> "1 price updated."
                     else -> "$changed prices updated."
                 }
-                refreshStatus.update { it.copy(userMessage = message) }
-            } catch (e: IOException) {
-                // No connection. The saved prices are still on screen and
-                // still correct for when they were fetched; say so plainly.
-                refreshStatus.update { it.copy(userMessage = "No connection. Showing the prices saved on this phone.") }
+                refreshStatus.update { it.copy(userMessage = message, failure = null) }
+            } catch (e: RefreshException) {
+                // Only the data layer's own failure is caught. Anything else
+                // is a bug and should crash in testing; a cancellation must
+                // go on up, or the coroutine would carry on after its screen.
+                val hasSavedPrices = repository.todaysPrices().first().isNotEmpty()
+                refreshStatus.update {
+                    it.copy(
+                        failure = e.failure,
+                        // An empty screen says it in its body; a snackbar would repeat it.
+                        userMessage = if (hasSavedPrices) refreshFailureMessage(e.failure, hasSavedPrices = true) else null,
+                    )
+                }
             } finally {
                 refreshStatus.update { it.copy(isRefreshing = false) }
             }

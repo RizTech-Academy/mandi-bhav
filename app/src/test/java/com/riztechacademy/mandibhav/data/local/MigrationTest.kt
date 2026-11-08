@@ -85,9 +85,31 @@ class MigrationTest {
     }
 
     @Test
-    fun aVersion1PhoneReachesVersion3InOneOpen() = runTest {
+    fun version3To4AddsEmptyPictureUrlsAndKeepsTheRows() = runTest {
+        helper.createDatabase(3).apply {
+            execSQL(
+                "INSERT INTO prices (id, commodity, market, date, minPrice, maxPrice, modalPrice, fetchedAt) " +
+                    "VALUES ('nashik-onion-2026-11-07', 'Onion', 'Nashik APMC', 20399, 1100, 2700, 2560, 1794053700000)"
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(4, emptyList())
+
+        migrated.prepare("SELECT modalPrice, fetchedAt, thumbnailUrl, photoUrl FROM prices").use {
+            it.step()
+            assertEquals(2_560L, it.getLong(0))
+            assertEquals(1_794_053_700_000L, it.getLong(1))
+            assertEquals(true, it.isNull(2))
+            assertEquals(true, it.isNull(3))
+        }
+        migrated.close()
+    }
+
+    @Test
+    fun aVersion1PhoneReachesVersion4InOneOpen() = runTest {
         helper.createDatabase(1).close()
 
-        helper.runMigrationsAndValidate(3, listOf(MIGRATION_1_2)).close()
+        helper.runMigrationsAndValidate(4, listOf(MIGRATION_1_2)).close()
     }
 }

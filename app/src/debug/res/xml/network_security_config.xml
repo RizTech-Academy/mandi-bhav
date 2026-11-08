@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Debug builds only. Lets the app talk plain HTTP to 10.0.2.2, which is
+    the emulator's name for the computer it runs on, so the API can be
+    served with `python3 -m http.server` while you develop. Every other
+    host, and every release build, is HTTPS only.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>

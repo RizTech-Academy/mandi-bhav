@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-08",
+  "published_at": "2026-11-08T10:35:00Z",
+  "unit": "rupees per quintal",
+  "source": "Sample prices for the Mandi Bhav course app, in the shape of the APMC daily prices published on data.gov.in. Realistic, not real: do not trade on them.",
+  "markets": [
+    {
+      "name": "Lasalgaon APMC",
+      "district": "Nashik",
+      "state": "Maharashtra"
+    },
+    {
+      "name": "Nashik APMC",
+      "district": "Nashik",
+      "state": "Maharashtra"
+    },
+    {
+      "name": "Pune (Gultekdi) APMC",
+      "district": "Pune",
+      "state": "Maharashtra"
+    },
+    {
+      "name": "Vashi APMC, Navi Mumbai",
+      "district": "Thane",
+      "state": "Maharashtra"
+    }
+  ],
+  "prices": [
+    {
+      "id": "lasalgaon-onion-2026-11-08",
+      "commodity": "Onion",
+      "market": "Lasalgaon APMC",
+      "date": "2026-11-08",
+      "min_price": 1250,
+      "max_price": 2950,
+      "modal_price": 2580,
+      "thumbnail": "images/thumb/onion.jpg",
+      "photo": "images/photo/onion.jpg"
+    },
+    {
+      "id": "pune-onion-2026-11-08",
+      "commodity": "Onion",
+      "market": "Pune (Gultekdi) APMC",
+      "date": "2026-11-08",
+      "min_price": 1100,
+      "max_price": 2850,
+      "modal_price": 2300,
+      "thumbnail": "images/thumb/onion.jpg",
+      "photo": "images/photo/onion.jpg"
+    },
+    {
+      "id": "nashik-onion-2026-11-08",
+      "commodity": "Onion",
+      "market": "Nashik APMC",
+      "date": "2026-11-08",
+      "min_price": 1150,
+      "max_price": 2750,
+      "modal_price": 2540,
+      "thumbnail": "images/thumb/onion.jpg",
+      "photo": "images/photo/onion.jpg"
+    },
+    {
+      "id": "pune-tomato-2026-11-08",
+      "commodity": "Tomato",
+      "market": "Pune (Gultekdi) APMC",
+      "date": "2026-11-08",
+      "min_price": 800,
+      "max_price": 1900,
+      "modal_price": 1400,
+      "thumbnail": "images/thumb/tomato.jpg",
+      "photo": "images/photo/tomato.jpg"
+    },
+    {
+      "id": "nashik-tomato-2026-11-08",
+      "commodity": "Tomato",
+      "market": "Nashik APMC",
+      "date": "2026-11-08",
+      "min_price": 650,
+      "max_price": 1750,
+      "modal_price": 1250,
+      "thumbnail": "images/thumb/tomato.jpg",
+      "photo": "images/photo/tomato.jpg"
+    },
+    {
+      "id": "vashi-potato-2026-11-08",
+      "commodity": "Potato",
+      "market": "Vashi APMC, Navi Mumbai",
+      "date": "2026-11-08",
+      "min_price": 1600,
+      "max_price": 2650,
+      "modal_price": 2150,
+      "thumbnail": "images/thumb/potato.jpg",
+      "photo": "images/photo/potato.jpg"
+    },
+    {
+      "id": "vashi-wheat-2026-11-08",
+      "commodity": "Wheat",
+      "market": "Vashi APMC, Navi Mumbai",
+      "date": "2026-11-08",
+      "min_price": 2700,
+      "max_price": 3300,
+      "modal_price": 3010,
+      "thumbnail": "images/thumb/wheat.jpg",
+      "photo": "images/photo/wheat.jpg"
+    },
+    {
+      "id": "lasalgaon-soybean-2026-11-08",
+      "commodity": "Soybean",
+      "market": "Lasalgaon APMC",
+      "date": "2026-11-08",
+      "min_price": 4250,
+      "max_price": 4850,
+      "modal_price": 4600,
+      "thumbnail": "images/thumb/soybean.jpg",
+      "photo": "images/photo/soybean.jpg"
+    },
+    {
+      "id": "pune-tur-dal-2026-11-08",
+      "commodity": "Tur dal",
+      "market": "Pune (Gultekdi) APMC",
+      "date": "2026-11-08",
+      "min_price": 6900,
+      "max_price": 7800,
+      "modal_price": 7350,
+      "thumbnail": "images/thumb/tur-dal.jpg",
+      "photo": "images/photo/tur-dal.jpg"
+    }
+  ]
+}

@@ -1,39 +1,27 @@
 package com.riztechacademy.mandibhav.data
 
-import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import com.riztechacademy.mandibhav.model.CommodityPrice
-import dagger.hilt.android.qualifiers.ApplicationContext
-import java.io.IOException
-import javax.inject.Inject
-import kotlinx.coroutines.delay
+import java.time.LocalDate
 
-/** Where the latest prices come from. Module 9 makes this a real server. */
+/** Where the prices come from: the prices server, through Retrofit. */
 interface PriceNetworkDataSource {
-    /** Today's prices as the server has them now. Throws [IOException] without a connection. */
-    suspend fun fetchLatestPrices(): List<CommodityPrice>
+    /** Today's prices and the markets they are from. Throws [RefreshException] on failure. */
+    suspend fun fetchLatestPrices(): LatestPrices
+
+    /** The modal prices of the last few days. Throws [RefreshException] on failure. */
+    suspend fun fetchHistory(): List<PastPrice>
 }
 
-/**
- * Stands in for the network until module 9: after a one-second pause it
- * returns the 4 pm closing prices from [SamplePrices]. It fails, as a real
- * request would, when the phone has no connection, so the app can be tested
- * in airplane mode before there is a server.
- */
-class DemoPriceNetworkDataSource @Inject constructor(
-    @ApplicationContext private val context: Context,
-) : PriceNetworkDataSource {
+/** One download of today's prices, with each market's district. */
+data class LatestPrices(
+    val markets: Map<String, String>,
+    val prices: List<CommodityPrice>,
+)
 
-    override suspend fun fetchLatestPrices(): List<CommodityPrice> {
-        delay(1_000)
-        if (!isConnected()) throw IOException("No network connection")
-        return SamplePrices.latest
-    }
-
-    private fun isConnected(): Boolean {
-        val connectivity = context.getSystemService(ConnectivityManager::class.java)
-        val capabilities = connectivity.getNetworkCapabilities(connectivity.activeNetwork) ?: return false
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-    }
-}
+/** One commodity's modal price at one market on an earlier day. */
+data class PastPrice(
+    val market: String,
+    val commodity: String,
+    val date: LocalDate,
+    val modalPrice: Long,
+)

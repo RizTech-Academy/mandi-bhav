@@ -22,6 +22,9 @@ data class PriceEntity(
     val modalPrice: Long,
     /** When this row was last written by a refresh; null for the seed data. */
     val fetchedAt: Instant? = null,
+    /** The commodity's pictures, small and large, as full URLs; null if none. Added in version 4. */
+    val thumbnailUrl: String? = null,
+    val photoUrl: String? = null,
 )
 
 fun PriceEntity.asModel() = CommodityPrice(
@@ -32,6 +35,8 @@ fun PriceEntity.asModel() = CommodityPrice(
     minPrice = minPrice,
     maxPrice = maxPrice,
     modalPrice = modalPrice,
+    thumbnailUrl = thumbnailUrl,
+    photoUrl = photoUrl,
 )
 
 fun CommodityPrice.asEntity(fetchedAt: Instant? = null) = PriceEntity(
@@ -43,4 +48,6 @@ fun CommodityPrice.asEntity(fetchedAt: Instant? = null) = PriceEntity(
     maxPrice = maxPrice,
     modalPrice = modalPrice,
     fetchedAt = fetchedAt,
+    thumbnailUrl = thumbnailUrl,
+    photoUrl = photoUrl,
 )

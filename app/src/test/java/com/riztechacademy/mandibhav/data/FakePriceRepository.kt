@@ -3,7 +3,6 @@ package com.riztechacademy.mandibhav.data
 import com.riztechacademy.mandibhav.model.CommodityPrice
 import com.riztechacademy.mandibhav.model.DayPrice
 import com.riztechacademy.mandibhav.model.Market
-import java.io.IOException
 import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,7 +36,14 @@ class FakePriceRepository(
     var refreshedAt: Instant = Instant.parse("2026-11-07T10:35:00Z")
 
     /** Set to make the next refreshes fail as they would with no connection. */
-    var offline = false
+    var offline: Boolean
+        get() = failure == RefreshFailure.NoConnection
+        set(value) {
+            failure = if (value) RefreshFailure.NoConnection else null
+        }
+
+    /** Set to make the next refreshes fail for this reason; null to succeed. */
+    var failure: RefreshFailure? = null
 
     override fun todaysPrices(): Flow<List<CommodityPrice>> = current
 
@@ -57,7 +63,7 @@ class FakePriceRepository(
 
     override suspend fun refresh(): Int {
         refreshCount++
-        if (offline) throw IOException("No network connection")
+        failure?.let { throw RefreshException(it) }
         lastUpdatedFlow.value = refreshedAt
         val changed = pricesAfterRefresh.count { it !in prices }
         prices = pricesAfterRefresh
