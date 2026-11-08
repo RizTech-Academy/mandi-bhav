@@ -95,4 +95,22 @@ class PriceDetailViewModelTest {
 
         assertEquals(PriceDetailUiState.NotFound, viewModel.uiState.value)
     }
+
+    @Test
+    fun aNotificationsPriceFollowsTheNewDay() = runTest {
+        // Posted for 7 November's onion; tapped after 8 November's arrived.
+        val repository = FakePriceRepository()
+        val viewModel = LatestPriceViewModel("Lasalgaon APMC", "Onion", repository, FindBestMarketUseCase(repository))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+        assertEquals(SamplePrices.lasalgaonOnion, (viewModel.uiState.value as PriceDetailUiState.Found).detail.price)
+
+        val nextDay = SamplePrices.lasalgaonOnion.copy(
+            id = "lasalgaon-onion-2026-11-08",
+            date = SamplePrices.lasalgaonOnion.date.plusDays(1),
+            modalPrice = 2_580,
+        )
+        repository.prices = SamplePrices.all.map { if (it.id == SamplePrices.lasalgaonOnion.id) nextDay else it }
+
+        assertEquals(nextDay, (viewModel.uiState.value as PriceDetailUiState.Found).detail.price)
+    }
 }

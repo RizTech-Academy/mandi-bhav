@@ -3,6 +3,7 @@ package com.riztechacademy.mandibhav.di
 import android.content.Context
 import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
+import com.riztechacademy.mandibhav.data.local.AlertDao
 import com.riztechacademy.mandibhav.data.local.MIGRATION_1_2
 import com.riztechacademy.mandibhav.data.local.MandiBhavDatabase
 import com.riztechacademy.mandibhav.data.local.PriceDao
@@ -29,6 +30,9 @@ object DatabaseModule {
 
     @Provides
     fun providePriceDao(database: MandiBhavDatabase): PriceDao = database.priceDao()
+
+    @Provides
+    fun provideAlertDao(database: MandiBhavDatabase): AlertDao = database.alertDao()
 
     /** The time, injected so a test can fix it. */
     @Provides

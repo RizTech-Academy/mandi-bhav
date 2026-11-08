@@ -18,6 +18,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.navigation3.runtime.NavKey
@@ -26,6 +27,7 @@ import androidx.navigation3.ui.NavDisplay
 import androidx.window.core.layout.WindowSizeClass
 import com.riztechacademy.mandibhav.R
 import com.riztechacademy.mandibhav.navigation.Alerts
+import com.riztechacademy.mandibhav.navigation.LatestPrice
 import com.riztechacademy.mandibhav.navigation.Market
 import com.riztechacademy.mandibhav.navigation.Markets
 import com.riztechacademy.mandibhav.navigation.PriceDetail
@@ -49,16 +51,30 @@ private val topLevelDestinations = listOf(
 /**
  * The whole app: a navigation bar on a phone, a navigation rail from 600 dp,
  * and one back stack per destination, shown by NavDisplay.
+ *
+ * [notificationTarget] is where a tapped notification asked to go: today's price,
+ * shown on the Prices tab over that tab's first screen so Back goes to
+ * today's prices, or the Alerts tab. Once there, the app reports
+ * [onNotificationTargetOpened].
  */
 @Composable
 fun MandiBhavApp(
     modifier: Modifier = Modifier,
     windowSizeClass: WindowSizeClass = currentWindowAdaptiveInfoV2().windowSizeClass,
+    notificationTarget: NavKey? = null,
+    onNotificationTargetOpened: () -> Unit = {},
 ) {
     val navigation = rememberTopLevelNavigation(
         startDestination = Prices,
         topLevelDestinations = topLevelDestinations.map { it.key },
     )
+
+    LaunchedEffect(notificationTarget) {
+        if (notificationTarget != null) {
+            navigation.openFromNotification(notificationTarget)
+            onNotificationTargetOpened()
+        }
+    }
 
     val entryProvider = entryProvider<NavKey> {
         entry<Prices> {
@@ -66,6 +82,9 @@ fun MandiBhavApp(
         }
         entry<PriceDetail> { key ->
             PriceDetailRoute(priceId = key.priceId, onBack = { navigation.goBack() })
+        }
+        entry<LatestPrice> { key ->
+            LatestPriceRoute(market = key.market, commodity = key.commodity, onBack = { navigation.goBack() })
         }
         entry<Markets> {
             MarketsRoute(onMarketClick = { name -> navigation.navigate(Market(name)) })
@@ -78,7 +97,7 @@ fun MandiBhavApp(
             )
         }
         entry<Alerts> {
-            AlertsScreen()
+            AlertsRoute()
         }
     }
 

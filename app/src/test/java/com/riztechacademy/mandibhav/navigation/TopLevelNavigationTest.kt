@@ -73,4 +73,34 @@ class TopLevelNavigationTest {
         nav.navigate(Alerts)
         assertEquals(listOf(Prices, Alerts), nav.stacksInUse())
     }
+
+    @Test
+    fun aNotificationOpensThePriceOnThePricesTabOverItsFirstScreen() {
+        // The user was on the Alerts tab, and deep in Prices before that.
+        val nav = navigation()
+        nav.navigate(PriceDetail("pune-onion-2026-11-07"))
+        nav.navigate(Alerts)
+
+        nav.openFromNotification(LatestPrice("Lasalgaon APMC", "Onion"))
+
+        assertEquals(Prices, nav.currentTopLevel)
+        assertEquals(listOf(Prices, LatestPrice("Lasalgaon APMC", "Onion")), nav.currentStack.toList())
+        // Back: today's prices, then out of the app.
+        assertTrue(nav.goBack())
+        assertFalse(nav.goBack())
+    }
+
+    @Test
+    fun theSummaryNotificationOpensTheAlertsTabAtItsFirstScreen() {
+        val nav = navigation()
+        nav.navigate(Markets)
+        nav.navigate(Market("Nashik APMC"))
+
+        nav.openFromNotification(Alerts)
+
+        assertEquals(Alerts, nav.currentTopLevel)
+        assertEquals(listOf<NavKey>(Alerts), nav.currentStack.toList())
+        // Markets keeps its own stack, as a tab switch always does.
+        assertEquals(listOf(Markets, Market("Nashik APMC")), nav.backStacks.getValue(Markets).toList())
+    }
 }

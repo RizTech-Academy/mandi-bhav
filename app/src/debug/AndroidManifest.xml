@@ -2,6 +2,13 @@
 <!-- Merged into the debug build's manifest only; release builds never see it. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <application android:networkSecurityConfig="@xml/network_security_config" />
+    <application android:networkSecurityConfig="@xml/network_security_config">
+        <!-- Runs the refresh worker once, on demand, from adb (see RunRefreshReceiver).
+             Only senders holding DUMP may call it: adb's shell has it, other apps do not. -->
+        <receiver
+            android:name=".work.RunRefreshReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
+    </application>
 
 </manifest>

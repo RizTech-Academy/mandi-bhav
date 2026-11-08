@@ -71,6 +71,20 @@ class TopLevelNavigation(
     }
 
     /**
+     * Opens [key] the way a notification should, whatever was showing before.
+     * A top-level destination opens at its first screen. Anything else opens
+     * on the start destination's tab, over its first screen: Back then goes
+     * to that first screen, and from there out of the app.
+     */
+    fun openFromNotification(key: NavKey) {
+        val tab = if (key in backStacks) key else startDestination
+        val stack = backStacks.getValue(tab)
+        while (stack.size > 1) stack.removeAt(stack.lastIndex)
+        currentTopLevel = tab
+        if (key != tab) stack.add(key)
+    }
+
+    /**
      * The stacks to show, bottom first: the start destination's, then the
      * current one if it is different. Putting the start tab underneath is what
      * makes Back from another tab land on Prices before leaving the app.

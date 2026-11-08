@@ -7,7 +7,10 @@ import com.riztechacademy.mandibhav.data.FakePriceRepository
 import com.riztechacademy.mandibhav.data.RefreshFailure
 import com.riztechacademy.mandibhav.data.FakeUserPreferencesRepository
 import com.riztechacademy.mandibhav.data.SamplePrices
+import com.riztechacademy.mandibhav.data.FakeAlertNotifier
+import com.riztechacademy.mandibhav.data.FakeAlertRepository
 import com.riztechacademy.mandibhav.domain.FindBestMarketUseCase
+import com.riztechacademy.mandibhav.domain.RefreshPricesUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -31,7 +34,14 @@ class PricesViewModelTest {
         repository: FakePriceRepository = FakePriceRepository(),
         preferences: FakeUserPreferencesRepository = FakeUserPreferencesRepository(),
         networkMonitor: FakeNetworkMonitor = FakeNetworkMonitor(),
-    ) = PricesViewModel(handle, repository, FindBestMarketUseCase(repository), preferences, networkMonitor)
+    ) = PricesViewModel(
+        handle,
+        repository,
+        FindBestMarketUseCase(repository),
+        RefreshPricesUseCase(repository, FakeAlertRepository(), FakeAlertNotifier()),
+        preferences,
+        networkMonitor,
+    )
 
     /**
      * uiState only updates while someone collects it

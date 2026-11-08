@@ -72,6 +72,21 @@ fun PriceDetailRoute(
     PriceDetailScreen(uiState = uiState, onBack = onBack, modifier = modifier)
 }
 
+/** Today's price for [commodity] at [market], whichever day's it is: what a notification opens. */
+@Composable
+fun LatestPriceRoute(
+    market: String,
+    commodity: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: LatestPriceViewModel = hiltViewModel<LatestPriceViewModel, LatestPriceViewModel.Factory>(
+        creationCallback = { factory -> factory.create(market, commodity) },
+    ),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    PriceDetailScreen(uiState = uiState, onBack = onBack, modifier = modifier)
+}
+
 /** One price at one market: today's numbers and the last seven days. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -15,13 +15,20 @@ data object Prices : NavKey
 @Serializable
 data object Markets : NavKey
 
-/** Top-level: price alerts, a placeholder until the notifications module. */
+/** Top-level: the user's price alerts. */
 @Serializable
 data object Alerts : NavKey
 
 /** One price in detail, by its id. */
 @Serializable
 data class PriceDetail(val priceId: String) : NavKey
+
+/**
+ * Today's price for one commodity at one market, whatever its date. What a
+ * price-alert notification opens: an id would name the day it was posted.
+ */
+@Serializable
+data class LatestPrice(val market: String, val commodity: String) : NavKey
 
 /** One market's prices, by the market's name. */
 @Serializable

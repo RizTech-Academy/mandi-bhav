@@ -42,6 +42,20 @@ val RefreshFailure.isWorthRetryingSoon: Boolean
     }
 
 /**
+ * Whether the same refresh is worth trying again in some minutes, by a
+ * background job that is not keeping anybody waiting. Broader than
+ * [isWorthRetryingSoon]: a timeout or a lost connection often clears up in
+ * ten minutes, though not in two seconds. A 404 or a file the app cannot
+ * read will not, so there is no point waking the phone up for it.
+ */
+val RefreshFailure.isWorthRetryingLater: Boolean
+    get() = when (this) {
+        RefreshFailure.NoConnection, RefreshFailure.Unreachable, RefreshFailure.Timeout -> true
+        is RefreshFailure.Server -> code >= 500 || code == 408 || code == 429
+        RefreshFailure.BadData -> false
+    }
+
+/**
  * Runs [block], and if it fails with a failure worth retrying, waits and
  * runs it again: at most [attempts] times in all, waiting 1 s, then 2 s,
  * then 4 s. `delay` is a suspension point, so cancelling the caller stops

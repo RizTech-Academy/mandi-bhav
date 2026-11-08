@@ -9,6 +9,7 @@ import com.riztechacademy.mandibhav.data.RefreshException
 import com.riztechacademy.mandibhav.data.RefreshFailure
 import com.riztechacademy.mandibhav.data.UserPreferencesRepository
 import com.riztechacademy.mandibhav.domain.FindBestMarketUseCase
+import com.riztechacademy.mandibhav.domain.RefreshPricesUseCase
 import com.riztechacademy.mandibhav.model.CommodityPrice
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
@@ -44,6 +45,7 @@ class PricesViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val repository: PriceRepository,
     private val findBestMarket: FindBestMarketUseCase,
+    private val refreshPrices: RefreshPricesUseCase,
     preferences: UserPreferencesRepository,
     networkMonitor: NetworkMonitor,
 ) : ViewModel() {
@@ -162,7 +164,9 @@ class PricesViewModel @Inject constructor(
         refreshStatus.update { it.copy(isRefreshing = true) }
         viewModelScope.launch {
             try {
-                val changed = repository.refresh()
+                // Through the use case, so a refresh from this screen checks
+                // the price alerts too, exactly as the daily worker does.
+                val changed = refreshPrices()
                 val message = when (changed) {
                     0 -> "Prices are up to date."
                     1 -> "1 price updated."

@@ -13,15 +13,17 @@ leaves it.
 The app has three destinations, Prices, Markets and Alerts, in a navigation bar on a phone and a
 navigation rail from 600 dp wide. A price opens a detail screen with its last seven days and the
 best market for that commodity today. A market's screen shows its district and lets the user make
-it their home market, whose prices then come first on the Prices tab. Alerts is a placeholder until
-the notifications module.
+it their home market, whose prices then come first on the Prices tab. The Alerts tab keeps price
+alerts, such as "onion at Lasalgaon above ₹2,500 a quintal", and the app sends a notification when
+a refresh brings a price that newly crosses one.
 
 Prices come from a small static JSON API committed to this repository, in `api/`, and served by
 GitHub (`api/README.md` describes it). They are kept on the phone in a Room database, so they
 survive the app being closed, the process being killed and the phone restarting, and the app works
 with no connection: it says it is offline, shows what it has, and refreshes by itself when the
 connection returns. The Prices tab says when they were last fetched. A new install downloads
-today's prices and the week before on first launch. Each price card shows a picture of the
+today's prices and the week before on first launch, and WorkManager refreshes them once a day,
+in the evening, whether or not the app is open. Each price card shows a picture of the
 commodity, and the detail screen a larger one, loaded with Coil. The home market is kept in
 Preferences DataStore.
 
@@ -36,11 +38,13 @@ the same kind of data for previews and tests.
 |---|---|---|
 | `ui` | UI | Screens (stateless composables), their routes, one `ViewModel` per screen, and one UI-state class per screen |
 | `navigation` | UI | Navigation 3 keys and the per-tab back stacks |
-| `domain` | Domain | `bestMarketFor` and `FindBestMarketUseCase`: the one business rule two screens share |
-| `data` | Data | `PriceRepository`, the interface every screen gets its prices from; `RoomPriceRepository`, its implementation over the database; `RefreshFailure` and the retry policy; `NetworkMonitor`; and `UserPreferencesRepository` over DataStore |
+| `domain` | Domain | `bestMarketFor` and `FindBestMarketUseCase`; `checkAlerts`, which decides which alerts have newly crossed; and `RefreshPricesUseCase`, the one refresh the screen and the worker both call |
+| `data` | Data | `PriceRepository`, the interface every screen gets its prices from; `RoomPriceRepository`, its implementation over the database; `RefreshFailure` and the retry policy; `NetworkMonitor`; `UserPreferencesRepository` over DataStore; and `AlertRepository`, the price alerts in Room |
 | `data.network` | Data | The Retrofit interface, the JSON classes in the server's field names, and `RetrofitPriceNetworkDataSource`, which turns every failure into a `RefreshFailure` |
 | `data.local` | Data | The Room database: entities, the DAO, type converters and the migration |
 | `model` | Shared | `CommodityPrice`, `DayPrice` and `Market`, plain data classes every layer uses |
+| `work` | Background | `PriceRefreshWorker`, the daily refresh, and `DailyRefresh`, its schedule |
+| `notifications` | Platform | The notification channel, and `SystemAlertNotifier`, which posts one notification per crossed alert |
 | `di` | Wiring | The Hilt modules that build the database, the DataStore, the HTTP client and Retrofit, the app-wide coroutine scope, and say which implementations the app uses |
 
 Dependencies point one way: `ui` → `domain` → `data`. The database is the single source of truth:
@@ -67,13 +71,49 @@ Debug builds log every request (tag `OkHttp`), turn on StrictMode for the main t
 `StrictMode`), and can read the API from your computer: see `api/README.md`. Release builds allow
 HTTPS only.
 
+## Work in the background
+
+`PriceRefreshWorker` is a Hilt-injected `CoroutineWorker`. It calls `RefreshPricesUseCase`, the same
+function as the Refresh button: the repository's single-flight refresh, then the alert check. It
+downloads nothing itself.
+
+| | |
+|---|---|
+| Schedule | Unique periodic work `daily-price-refresh`, every 24 hours from the next 7 pm, `ExistingPeriodicWorkPolicy.KEEP` |
+| Constraint | Any working network (`NetworkType.CONNECTED`) |
+| Retry | No connection, unreachable, timeout and 5xx/408/429 retry with exponential backoff from 10 minutes, at most 4 tries a day; 404 and bad data do not |
+| Survives | The app being swiped away mid-download (it runs again after the backoff) and process death; a force-stop cancels it until the app is next opened |
+
+`MandiBhavApplication` gives WorkManager Hilt's worker factory, so the manifest removes WorkManager's
+default start-up initialiser. Debug builds add `RunRefreshReceiver`, to run the worker once on demand
+(WorkManager will not run periodic work before its time, even when JobScheduler is told to):
+
+```bash
+adb shell am broadcast -n com.riztechacademy.mandibhav/.work.RunRefreshReceiver
+adb shell am broadcast -n com.riztechacademy.mandibhav/.work.RunRefreshReceiver --el delay 120
+```
+
+The API is static files, so a daily refresh brings new prices only when the files in `api/v1/`
+change. To see a new day arrive locally, serve a changed `prices.json` (see `api/README.md`).
+
+## Notifications
+
+One channel, "Price alerts" (`price_alerts`). The `POST_NOTIFICATIONS` permission (Android 13 and
+later) is asked for when the first alert is saved, never at launch; if it is refused, the Alerts
+tab says so and links to the app's notification settings. A crossing is announced once: an alert
+fires when the modal price goes past its level, and again only after the price has come back.
+Each alert has its own notification, in one group with a summary; a tap opens today's price for
+that commodity and market (not the notified day's price, which the next refresh replaces), and a
+tap on the summary opens the Alerts tab. `MainActivity` is `singleTop`, so a tap while the app is
+open arrives through `onNewIntent`.
+
 ## The database
 
 The schema is exported to `app/schemas/`, one JSON file per version, and committed: the migration
 tests build old databases from these files. Version 1 had prices and their history; version 2 adds
 the `markets` table, through a hand-written migration (`data/local/Migrations.kt`); version 3 adds
 `prices.fetchedAt` through a Room auto-migration; version 4 adds the two picture URLs, also
-automatically. A new database starts empty and is filled by the first download. After changing an entity, bump the version, build
+automatically; version 5 adds the `price_alerts` table, automatically. A new database starts empty and is filled by the first download. After changing an entity, bump the version, build
 once so the new JSON exists, then add and test the migration.
 
 ## Running it
@@ -88,13 +128,13 @@ From the command line:
 
 ```bash
 ./gradlew assembleDebug        # build
-./gradlew testDebugUnitTest    # unit tests: Room under Robolectric, the network against MockWebServer
+./gradlew testDebugUnitTest    # unit tests: Room under Robolectric, the network against MockWebServer, the worker with work-testing
 ./gradlew installDebug         # install on a connected device or emulator
 ```
 
 Android Studio writes `local.properties` with your SDK path on first sync; it is not committed.
 
-The database, migration and DataStore tests run on the JVM with Robolectric, so they need no
+The database, migration, DataStore and worker tests run on the JVM with Robolectric, so they need no
 emulator. Robolectric's Android 36 sandbox needs Java 21, and this project builds on JDK 17, so
 `app/src/test/resources/robolectric.properties` runs them on API 35.
 
@@ -131,6 +171,8 @@ running app and none of the understanding the module is for.
 | Hilt (hilt-android, hilt-compiler, Gradle plugin) | 2.60.1 |
 | KSP | 2.3.13 |
 | androidx.hilt (hilt-lifecycle-viewmodel-compose) | 1.4.0 |
+| WorkManager (work-runtime-ktx; work-testing in tests) | 2.12.0 |
+| androidx.hilt (hilt-work, hilt-compiler) | 1.4.0 |
 | Room 3 (room3-runtime, room3-compiler, room3-testing, Gradle plugin `androidx.room3`) | 3.0.3 |
 | DataStore (datastore-preferences) | 1.3.0 |
 | Robolectric (tests) | 4.17 |

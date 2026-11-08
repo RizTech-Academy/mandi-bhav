@@ -107,9 +107,44 @@ class MigrationTest {
     }
 
     @Test
-    fun aVersion1PhoneReachesVersion4InOneOpen() = runTest {
+    fun version4To5AddsAnEmptyAlertsTableAndKeepsThePrices() = runTest {
+        helper.createDatabase(4).apply {
+            execSQL(
+                "INSERT INTO prices (id, commodity, market, date, minPrice, maxPrice, modalPrice, fetchedAt, thumbnailUrl, photoUrl) " +
+                    "VALUES ('lasalgaon-onion-2026-11-08', 'Onion', 'Lasalgaon APMC', 20400, 1250, 2950, 2580, 1794140100000, " +
+                    "'https://example.test/thumb/onion.jpg', NULL)"
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(5, emptyList())
+
+        migrated.prepare("SELECT modalPrice, thumbnailUrl FROM prices").use {
+            it.step()
+            assertEquals(2_580L, it.getLong(0))
+            assertEquals("https://example.test/thumb/onion.jpg", it.getText(1))
+        }
+        migrated.prepare("SELECT COUNT(*) FROM price_alerts").use {
+            it.step()
+            assertEquals(0L, it.getLong(0))
+        }
+        // The new table takes an alert as the app will write one.
+        migrated.execSQL(
+            "INSERT INTO price_alerts (commodity, market, direction, level, isCrossed, createdAt) " +
+                "VALUES ('Onion', 'Lasalgaon APMC', 'Above', 2500, 0, 1794140100000)"
+        )
+        migrated.prepare("SELECT id, direction FROM price_alerts").use {
+            it.step()
+            assertEquals(1L, it.getLong(0))
+            assertEquals("Above", it.getText(1))
+        }
+        migrated.close()
+    }
+
+    @Test
+    fun aVersion1PhoneReachesVersion5InOneOpen() = runTest {
         helper.createDatabase(1).close()
 
-        helper.runMigrationsAndValidate(4, listOf(MIGRATION_1_2)).close()
+        helper.runMigrationsAndValidate(5, listOf(MIGRATION_1_2)).close()
     }
 }
