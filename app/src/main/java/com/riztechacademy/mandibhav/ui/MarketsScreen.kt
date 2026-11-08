@@ -16,11 +16,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.riztechacademy.mandibhav.data.PriceSource
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.riztechacademy.mandibhav.data.SamplePrices
 import com.riztechacademy.mandibhav.model.CommodityPrice
 import com.riztechacademy.mandibhav.ui.theme.MandiBhavTheme
 
@@ -31,15 +33,15 @@ data class MarketSummary(val name: String, val priceCount: Int)
 fun marketSummaries(prices: List<CommodityPrice>): List<MarketSummary> =
     prices.groupBy { it.market }.map { (name, atMarket) -> MarketSummary(name, atMarket.size) }
 
-/**
- * The Markets destination: the markets that reported today. The source is
- * in memory and never changes, so this screen reads it once and has no
- * ViewModel yet; module 7 moves it into one, with a shared repository.
- */
+/** The Markets destination: the markets that reported today. */
 @Composable
-fun MarketsRoute(onMarketClick: (market: String) -> Unit, modifier: Modifier = Modifier) {
-    val markets = remember { marketSummaries(PriceSource().todaysPrices()) }
-    MarketsScreen(markets = markets, onMarketClick = onMarketClick, modifier = modifier)
+fun MarketsRoute(
+    onMarketClick: (market: String) -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: MarketsViewModel = hiltViewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    MarketsScreen(markets = uiState.markets, onMarketClick = onMarketClick, modifier = modifier)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,9 +81,12 @@ fun MarketRoute(
     onPriceClick: (priceId: String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: MarketViewModel = hiltViewModel<MarketViewModel, MarketViewModel.Factory>(
+        creationCallback = { factory -> factory.create(market) },
+    ),
 ) {
-    val prices = remember(market) { PriceSource().pricesAt(market) }
-    MarketScreen(market, prices, onPriceClick, onBack, modifier)
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    MarketScreen(uiState.market, uiState.prices, onPriceClick, onBack, modifier, isLoading = uiState.isLoading)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -92,6 +97,7 @@ fun MarketScreen(
     onPriceClick: (priceId: String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
 ) {
     Scaffold(
         modifier = modifier,
@@ -106,7 +112,7 @@ fun MarketScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (prices.isEmpty()) {
+            if (!isLoading && prices.isEmpty()) {
                 item(key = "empty") {
                     Text(
                         text = "No prices from this market today.",
@@ -129,7 +135,7 @@ fun MarketScreen(
 @Composable
 private fun MarketsScreenPreview() {
     MandiBhavTheme {
-        MarketsScreen(markets = marketSummaries(PriceSource().todaysPrices()), onMarketClick = {})
+        MarketsScreen(markets = marketSummaries(SamplePrices.all), onMarketClick = {})
     }
 }
 
@@ -139,7 +145,7 @@ private fun MarketScreenPreview() {
     MandiBhavTheme {
         MarketScreen(
             market = "Pune (Gultekdi) APMC",
-            prices = PriceSource().pricesAt("Pune (Gultekdi) APMC"),
+            prices = SamplePrices.all.filter { it.market == "Pune (Gultekdi) APMC" },
             onPriceClick = {},
             onBack = {},
         )

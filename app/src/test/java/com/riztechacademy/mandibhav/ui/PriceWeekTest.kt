@@ -1,6 +1,6 @@
 package com.riztechacademy.mandibhav.ui
 
-import com.riztechacademy.mandibhav.data.PriceSource
+import com.riztechacademy.mandibhav.data.SamplePrices.weekOf
 import com.riztechacademy.mandibhav.data.SamplePrices
 import com.riztechacademy.mandibhav.model.DayPrice
 import org.junit.Assert.assertEquals
@@ -10,7 +10,7 @@ import org.junit.Test
 class PriceWeekTest {
 
     private val price = SamplePrices.puneTomato
-    private val week = PriceSource().week(price.id)
+    private val week = weekOf(price)
 
     @Test
     fun changeIsTodayMinusYesterday() {

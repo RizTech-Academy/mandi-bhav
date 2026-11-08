@@ -25,6 +25,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -34,10 +35,11 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.riztechacademy.mandibhav.R
-import com.riztechacademy.mandibhav.data.PriceSource
 import com.riztechacademy.mandibhav.data.SamplePrices
+import com.riztechacademy.mandibhav.model.CommodityPrice
 import com.riztechacademy.mandibhav.model.DayPrice
 import com.riztechacademy.mandibhav.ui.theme.MandiBhavTheme
 import java.time.format.DateTimeFormatter
@@ -57,16 +59,19 @@ fun PriceDetailRoute(
     priceId: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: PriceDetailViewModel = viewModel { PriceDetailViewModel(priceId) },
+    viewModel: PriceDetailViewModel = hiltViewModel<PriceDetailViewModel, PriceDetailViewModel.Factory>(
+        creationCallback = { factory -> factory.create(priceId) },
+    ),
 ) {
-    PriceDetailScreen(detail = viewModel.detail, onBack = onBack, modifier = modifier)
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    PriceDetailScreen(uiState = uiState, onBack = onBack, modifier = modifier)
 }
 
 /** One price at one market: today's numbers and the last seven days. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PriceDetailScreen(
-    detail: PriceWeek?,
+    uiState: PriceDetailUiState,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -74,87 +79,102 @@ fun PriceDetailScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(detail?.price?.commodity ?: "Price") },
+                title = {
+                    Text((uiState as? PriceDetailUiState.Found)?.detail?.price?.commodity ?: "Price")
+                },
                 navigationIcon = { BackButton(onBack) },
             )
         },
     ) { innerPadding ->
-        if (detail == null) {
+        when (uiState) {
+            // Draw nothing until the repository answers. From memory that
+            // is the next frame; a spinner would only flash.
+            PriceDetailUiState.Loading -> Unit
             // The id came from a saved back stack, and the price it named is
             // gone. Say so, rather than crash or show an empty screen.
-            Text(
+            PriceDetailUiState.NotFound -> Text(
                 text = "This price is no longer available.",
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier
                     .padding(innerPadding)
                     .padding(16.dp),
             )
-            return@Scaffold
+            is PriceDetailUiState.Found -> PriceDetailContent(
+                detail = uiState.detail,
+                bestMarket = uiState.bestMarket,
+                innerPadding = innerPadding,
+            )
         }
-        val price = detail.price
-        LazyColumn(
-            modifier = Modifier
-                .padding(innerPadding)
-                .consumeWindowInsets(innerPadding)
-                .fillMaxWidth(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            item(key = "today") {
-                Column(
-                    modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Text(text = price.market, style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        text = detailDateFormat.format(price.date),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = "${formatRupees(price.modalPrice)} per quintal",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .padding(top = 8.dp)
-                            .semantics {
-                                contentDescription = "${spokenRupees(price.modalPrice)} per quintal"
-                            },
-                    )
-                    Text(
-                        text = "Modal (most common) price",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = "Min ${formatRupees(price.minPrice)} · Max ${formatRupees(price.maxPrice)}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier
-                            .padding(top = 8.dp)
-                            .semantics {
-                                contentDescription = "Range ${spokenRupees(price.minPrice)} to ${spokenRupees(price.maxPrice)}"
-                            },
-                    )
-                    detail.changeSinceYesterday?.let { change ->
-                        Text(text = describeChange(change), style = MaterialTheme.typography.bodyLarge)
-                    }
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    Text(
-                        text = "Last 7 days, modal price",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.semantics { heading() },
-                    )
+    }
+}
+
+/** Today's numbers, the best market, and the week, for a price that exists. */
+@Composable
+private fun PriceDetailContent(detail: PriceWeek, bestMarket: CommodityPrice?, innerPadding: PaddingValues) {
+    val price = detail.price
+    LazyColumn(
+        modifier = Modifier
+            .padding(innerPadding)
+            .consumeWindowInsets(innerPadding)
+            .fillMaxWidth(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        item(key = "today") {
+            Column(
+                modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(text = price.market, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = detailDateFormat.format(price.date),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "${formatRupees(price.modalPrice)} per quintal",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .semantics {
+                            contentDescription = "${spokenRupees(price.modalPrice)} per quintal"
+                        },
+                )
+                Text(
+                    text = "Modal (most common) price",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "Min ${formatRupees(price.minPrice)} · Max ${formatRupees(price.maxPrice)}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .semantics {
+                            contentDescription = "Range ${spokenRupees(price.minPrice)} to ${spokenRupees(price.maxPrice)}"
+                        },
+                )
+                detail.changeSinceYesterday?.let { change ->
+                    Text(text = describeChange(change), style = MaterialTheme.typography.bodyLarge)
                 }
-            }
-            // Newest day first, like the rest of the app.
-            items(items = detail.week.asReversed(), key = { it.date.toEpochDay() }) { day ->
-                WeekRow(
-                    day = day,
-                    weekRange = detail.weekRange,
-                    modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
+                bestMarket?.let { best -> BestMarketText(best = best, here = price) }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                Text(
+                    text = "Last 7 days, modal price",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.semantics { heading() },
                 )
             }
+        }
+        // Newest day first, like the rest of the app.
+        items(items = detail.week.asReversed(), key = { it.date.toEpochDay() }) { day ->
+            WeekRow(
+                day = day,
+                weekRange = detail.weekRange,
+                modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
+            )
         }
     }
 }
@@ -220,11 +240,12 @@ fun BackButton(onBack: () -> Unit) {
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun PriceDetailScreenPreview() {
-    val source = PriceSource()
-    val id = SamplePrices.lasalgaonOnion.id
     MandiBhavTheme {
         PriceDetailScreen(
-            detail = priceWeek(SamplePrices.lasalgaonOnion, source.week(id)),
+            uiState = PriceDetailUiState.Found(
+                detail = priceWeek(SamplePrices.lasalgaonOnion, SamplePrices.weekOf(SamplePrices.lasalgaonOnion)),
+                bestMarket = SamplePrices.lasalgaonOnion,
+            ),
             onBack = {},
         )
     }
@@ -234,6 +255,6 @@ private fun PriceDetailScreenPreview() {
 @Composable
 private fun PriceDetailMissingPreview() {
     MandiBhavTheme {
-        PriceDetailScreen(detail = null, onBack = {})
+        PriceDetailScreen(uiState = PriceDetailUiState.NotFound, onBack = {})
     }
 }

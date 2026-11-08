@@ -1,6 +1,7 @@
 package com.riztechacademy.mandibhav.data
 
 import com.riztechacademy.mandibhav.model.CommodityPrice
+import com.riztechacademy.mandibhav.model.DayPrice
 import java.time.LocalDate
 
 /**
@@ -113,6 +114,17 @@ object SamplePrices {
     )
 
     /**
+     * The 4 pm closing prices: what a refresh brings in. Three prices change
+     * under the same ids, and Nashik overtakes Lasalgaon as the best market
+     * for onion.
+     */
+    val closingPrices = listOf(
+        lasalgaonOnion.copy(maxPrice = 2_900, modalPrice = 2_525),
+        nashikOnion.copy(modalPrice = 2_560),
+        puneTomato.copy(modalPrice = 1_450),
+    )
+
+    /**
      * The modal price over the last seven days for each price above, oldest
      * first, keyed by price id. The last value is that price's modal price.
      */
@@ -127,4 +139,22 @@ object SamplePrices {
         lasalgaonSoybean.id to listOf(4_480, 4_500, 4_520, 4_510, 4_540, 4_530, 4_550),
         puneTur.id to listOf(7_100, 7_150, 7_200, 7_180, 7_250, 7_280, 7_300),
     )
+
+    /**
+     * The week for [price] from [weekOfModalPrices], oldest day first. The
+     * history ends on the day of the price, so its last value is the price's
+     * own modal price, whatever a refresh has set it to. Empty without a history.
+     */
+    fun weekOf(
+        price: CommodityPrice,
+        history: Map<String, List<Long>> = weekOfModalPrices,
+    ): List<DayPrice> {
+        val modals = history[price.id]?.dropLast(1)?.plus(price.modalPrice) ?: return emptyList()
+        return modals.mapIndexed { index, modal ->
+            DayPrice(
+                date = price.date.minusDays((modals.size - 1 - index).toLong()),
+                modalPrice = modal,
+            )
+        }
+    }
 }

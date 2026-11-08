@@ -108,14 +108,24 @@ fun rememberTopLevelNavigation(
 fun TopLevelNavigation.entries(
     entryProvider: (NavKey) -> NavEntry<NavKey>,
 ): List<NavEntry<NavKey>> {
-    val entriesByStack = backStacks.mapValues { (_, stack) ->
+    val entriesByStack = backStacks.mapValues { (topLevel, stack) ->
         rememberDecoratedNavEntries(
             backStack = stack,
             entryDecorators = listOf(
                 rememberSaveableStateHolderNavEntryDecorator(),
                 rememberViewModelStoreNavEntryDecorator(),
             ),
-            entryProvider = entryProvider,
+            // The decorators find an entry's saved state and ViewModels by its
+            // content key, and by default that is the key itself. The same
+            // price open on two tabs would then share one ViewModel, and Back
+            // on one tab would clear it under the other. Prefixing the tab
+            // gives each stack its own.
+            entryProvider = { key ->
+                val entry = entryProvider(key)
+                NavEntry(key = key, contentKey = "$topLevel/${entry.contentKey}", metadata = entry.metadata) {
+                    entry.Content()
+                }
+            },
         )
     }
     return stacksInUse().flatMap { entriesByStack.getValue(it) }

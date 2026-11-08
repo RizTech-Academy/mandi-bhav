@@ -11,11 +11,28 @@ course. The course builds it module by module, and this repository holds the cod
 leaves it.
 
 The app has three destinations, Prices, Markets and Alerts, in a navigation bar on a phone and a
-navigation rail from 600 dp wide. A price opens a detail screen with its last seven days. Alerts is
-a placeholder until the notifications module.
+navigation rail from 600 dp wide. A price opens a detail screen with its last seven days and the
+best market for that commodity today. Alerts is a placeholder until the notifications module.
 
-The prices and the seven-day histories in `data/SamplePrices.kt` are realistic, not real. The app
-fetches real prices in the networking module.
+The prices and the seven-day histories in `data/SamplePrices.kt` are realistic, not real. The
+Refresh button applies a set of "4 pm closing prices" from the same file after a one-second pause
+that stands in for the network. The app fetches real prices in the networking module.
+
+## How the code is organised
+
+| Package | Layer | What is in it |
+|---|---|---|
+| `ui` | UI | Screens (stateless composables), their routes, one `ViewModel` per screen, and one UI-state class per screen |
+| `navigation` | UI | Navigation 3 keys and the per-tab back stacks |
+| `domain` | Domain | `bestMarketFor` and `FindBestMarketUseCase`: the one business rule two screens share |
+| `data` | Data | `PriceRepository`, the interface every screen gets its prices from, and `SamplePriceRepository`, its in-memory implementation |
+| `model` | Shared | `CommodityPrice` and `DayPrice`, plain data classes every layer uses |
+| `di` | Wiring | The Hilt module that says which `PriceRepository` the app uses |
+
+Dependencies point one way: `ui` → `domain` → `data`. The repository is the single source of
+truth: one instance, bound `@Singleton` in `di/DataModule.kt`, exposing every answer as a `Flow`,
+so a refresh reaches every screen that is open. Module 8 replaces `SamplePriceRepository` with a
+Room-backed one by changing the binding; no screen changes.
 
 ## Running it
 
@@ -62,6 +79,9 @@ running app and none of the understanding the module is for.
 | Navigation 3 (navigation3-runtime, navigation3-ui) | 1.2.1 |
 | kotlinx-serialization-core (with the Kotlin serialization plugin) | 1.12.0 |
 | kotlinx-coroutines (android, test) | 1.11.0 |
+| Hilt (hilt-android, hilt-compiler, Gradle plugin) | 2.60.1 |
+| KSP | 2.3.13 |
+| androidx.hilt (hilt-lifecycle-viewmodel-compose) | 1.4.0 |
 | compileSdk | 37.2 |
 | targetSdk | 36 |
 | minSdk | 26 |
