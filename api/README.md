@@ -36,7 +36,15 @@ on them.
   "published_at": "2026-11-08T10:35:00Z",
   "unit": "rupees per quintal",
   "source": "…",
-  "markets": [{ "name": "Lasalgaon APMC", "district": "Nashik", "state": "Maharashtra" }],
+  "markets": [
+    {
+      "name": "Lasalgaon APMC",
+      "district": "Nashik",
+      "state": "Maharashtra",
+      "latitude": 20.1500,
+      "longitude": 74.2330
+    }
+  ],
   "prices": [
     {
       "id": "lasalgaon-onion-2026-11-08",
@@ -61,6 +69,9 @@ Rules for changing it:
 - Prices are whole rupees per quintal; dates are ISO `yyyy-MM-dd`.
 - A price's `id` is `<market>-<commodity>-<date>` and is unique.
 - Picture paths are relative to the `v1/` folder.
+- A market's `latitude` and `longitude` are roughly where its market yard is, in degrees, to about a
+  kilometre: enough to say which market is nearest, not to navigate by. Both or neither. They were
+  added to v1 in module 11; builds released before that ignore them.
 - **Adding a field is allowed in v1.** The app ignores keys it does not know.
 - **Renaming, removing or retyping a field is not.** That is `v2/`, in a new folder, with `v1/`
   left in place for the copies of the app already installed.

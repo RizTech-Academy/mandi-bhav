@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +21,15 @@ interface UserPreferencesRepository {
 
     /** Makes [market] the home market; null clears it. */
     suspend fun setHomeMarket(market: String?)
+
+    /**
+     * The runtime permissions the user has refused at least once. Android
+     * does not say: "never asked" and "refused twice" look the same to an
+     * app, so the app has to remember which one it is.
+     */
+    val refusedPermissions: Flow<Set<String>>
+
+    suspend fun setPermissionRefused(permission: String, refused: Boolean)
 }
 
 /** [UserPreferencesRepository] in a Preferences DataStore file. */
@@ -43,7 +53,20 @@ class DataStoreUserPreferencesRepository @Inject constructor(
         }
     }
 
+    override val refusedPermissions: Flow<Set<String>> = dataStore.data
+        .catch { exception -> if (exception is IOException) emit(emptyPreferences()) else throw exception }
+        .map { preferences -> preferences[REFUSED_PERMISSIONS].orEmpty() }
+        .distinctUntilChanged()
+
+    override suspend fun setPermissionRefused(permission: String, refused: Boolean) {
+        dataStore.edit { preferences ->
+            val now = preferences[REFUSED_PERMISSIONS].orEmpty()
+            preferences[REFUSED_PERMISSIONS] = if (refused) now + permission else now - permission
+        }
+    }
+
     private companion object {
         val HOME_MARKET = stringPreferencesKey("home_market")
+        val REFUSED_PERMISSIONS = stringSetPreferencesKey("refused_permissions")
     }
 }

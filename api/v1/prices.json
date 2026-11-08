@@ -8,22 +8,30 @@
     {
       "name": "Lasalgaon APMC",
       "district": "Nashik",
-      "state": "Maharashtra"
+      "state": "Maharashtra",
+      "latitude": 20.1500,
+      "longitude": 74.2330
     },
     {
       "name": "Nashik APMC",
       "district": "Nashik",
-      "state": "Maharashtra"
+      "state": "Maharashtra",
+      "latitude": 20.0110,
+      "longitude": 73.7900
     },
     {
       "name": "Pune (Gultekdi) APMC",
       "district": "Pune",
-      "state": "Maharashtra"
+      "state": "Maharashtra",
+      "latitude": 18.4880,
+      "longitude": 73.8650
     },
     {
       "name": "Vashi APMC, Navi Mumbai",
       "district": "Thane",
-      "state": "Maharashtra"
+      "state": "Maharashtra",
+      "latitude": 19.0790,
+      "longitude": 73.0090
     }
   ],
   "prices": [

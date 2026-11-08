@@ -7,6 +7,7 @@ import com.riztechacademy.mandibhav.data.local.AlertDao
 import com.riztechacademy.mandibhav.data.local.MIGRATION_1_2
 import com.riztechacademy.mandibhav.data.local.MandiBhavDatabase
 import com.riztechacademy.mandibhav.data.local.PriceDao
+import com.riztechacademy.mandibhav.data.local.SaleSlipDao
 import dagger.Module
 import java.time.Clock
 import dagger.Provides
@@ -33,6 +34,9 @@ object DatabaseModule {
 
     @Provides
     fun provideAlertDao(database: MandiBhavDatabase): AlertDao = database.alertDao()
+
+    @Provides
+    fun provideSaleSlipDao(database: MandiBhavDatabase): SaleSlipDao = database.saleSlipDao()
 
     /** The time, injected so a test can fix it. */
     @Provides

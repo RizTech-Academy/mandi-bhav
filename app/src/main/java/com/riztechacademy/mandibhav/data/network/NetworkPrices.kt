@@ -3,6 +3,7 @@ package com.riztechacademy.mandibhav.data.network
 import com.riztechacademy.mandibhav.data.LatestPrices
 import com.riztechacademy.mandibhav.data.PastPrice
 import com.riztechacademy.mandibhav.model.CommodityPrice
+import com.riztechacademy.mandibhav.model.GeoPoint
 import java.time.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -28,6 +29,13 @@ data class NetworkPrices(
 data class NetworkMarket(
     val name: String,
     val district: String,
+    /**
+     * Roughly where the market yard is, in degrees. Added to v1 in module 11:
+     * optional, so the files from before still parse, and ignored by the
+     * builds released before it, which do not know the keys.
+     */
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 )
 
 @Serializable
@@ -67,7 +75,15 @@ data class NetworkPastPrice(
 fun NetworkPrices.asLatestPrices(baseUrl: HttpUrl) = LatestPrices(
     markets = markets.associate { it.name to it.district },
     prices = prices.map { it.asModel(baseUrl) },
+    locations = markets.mapNotNull { market -> market.location()?.let { market.name to it } }.toMap(),
 )
+
+/** Both coordinates, in range, or nothing: half a location is not a location. */
+private fun NetworkMarket.location(): GeoPoint? {
+    val lat = latitude ?: return null
+    val lon = longitude ?: return null
+    return if (lat in -90.0..90.0 && lon in -180.0..180.0) GeoPoint(lat, lon) else null
+}
 
 fun NetworkPrice.asModel(baseUrl: HttpUrl) = CommodityPrice(
     id = id,

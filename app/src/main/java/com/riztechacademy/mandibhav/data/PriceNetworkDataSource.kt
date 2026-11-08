@@ -1,6 +1,7 @@
 package com.riztechacademy.mandibhav.data
 
 import com.riztechacademy.mandibhav.model.CommodityPrice
+import com.riztechacademy.mandibhav.model.GeoPoint
 import java.time.LocalDate
 
 /** Where the prices come from: the prices server, through Retrofit. */
@@ -12,10 +13,11 @@ interface PriceNetworkDataSource {
     suspend fun fetchHistory(): List<PastPrice>
 }
 
-/** One download of today's prices, with each market's district. */
+/** One download of today's prices, with each market's district and, where known, its location. */
 data class LatestPrices(
     val markets: Map<String, String>,
     val prices: List<CommodityPrice>,
+    val locations: Map<String, GeoPoint> = emptyMap(),
 )
 
 /** One commodity's modal price at one market on an earlier day. */

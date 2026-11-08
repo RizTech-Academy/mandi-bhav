@@ -51,7 +51,9 @@ class FakePriceRepository(
         current.map { all -> all.firstOrNull { it.id == id } }
 
     override fun markets(): Flow<List<Market>> = current.map { all ->
-        all.groupBy { it.market }.map { (name, prices) -> Market(name, SamplePrices.districts[name].orEmpty(), prices) }
+        all.groupBy { it.market }.map { (name, prices) ->
+            Market(name, SamplePrices.districts[name].orEmpty(), prices, SamplePrices.locations[name])
+        }
             .sortedBy { it.name }
     }
 

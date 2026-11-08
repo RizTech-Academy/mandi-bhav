@@ -52,27 +52,27 @@ private val topLevelDestinations = listOf(
  * The whole app: a navigation bar on a phone, a navigation rail from 600 dp,
  * and one back stack per destination, shown by NavDisplay.
  *
- * [notificationTarget] is where a tapped notification asked to go: today's price,
- * shown on the Prices tab over that tab's first screen so Back goes to
- * today's prices, or the Alerts tab. Once there, the app reports
- * [onNotificationTargetOpened].
+ * [linkTarget] is where a deep link asked to go, from a tapped notification
+ * or anywhere else: today's price, shown on the Prices tab over that tab's
+ * first screen so Back goes to today's prices, or the Alerts tab. Once
+ * there, the app reports [onLinkTargetOpened].
  */
 @Composable
 fun MandiBhavApp(
     modifier: Modifier = Modifier,
     windowSizeClass: WindowSizeClass = currentWindowAdaptiveInfoV2().windowSizeClass,
-    notificationTarget: NavKey? = null,
-    onNotificationTargetOpened: () -> Unit = {},
+    linkTarget: NavKey? = null,
+    onLinkTargetOpened: () -> Unit = {},
 ) {
     val navigation = rememberTopLevelNavigation(
         startDestination = Prices,
         topLevelDestinations = topLevelDestinations.map { it.key },
     )
 
-    LaunchedEffect(notificationTarget) {
-        if (notificationTarget != null) {
-            navigation.openFromNotification(notificationTarget)
-            onNotificationTargetOpened()
+    LaunchedEffect(linkTarget) {
+        if (linkTarget != null) {
+            navigation.openFromLink(linkTarget)
+            onLinkTargetOpened()
         }
     }
 

@@ -2,6 +2,7 @@ package com.riztechacademy.mandibhav.data
 
 import com.riztechacademy.mandibhav.model.CommodityPrice
 import com.riztechacademy.mandibhav.model.DayPrice
+import com.riztechacademy.mandibhav.model.GeoPoint
 import java.time.LocalDate
 
 /**
@@ -131,6 +132,17 @@ object SamplePrices {
         "Pune (Gultekdi) APMC" to "Pune",
         "Nashik APMC" to "Nashik",
         "Vashi APMC, Navi Mumbai" to "Thane",
+    )
+
+    /**
+     * Roughly where each sample market's yard is, to about a kilometre: the
+     * same values as the markets in the API's prices.json.
+     */
+    val locations: Map<String, GeoPoint> = mapOf(
+        "Lasalgaon APMC" to GeoPoint(20.1500, 74.2330),
+        "Nashik APMC" to GeoPoint(20.0110, 73.7900),
+        "Pune (Gultekdi) APMC" to GeoPoint(18.4880, 73.8650),
+        "Vashi APMC, Navi Mumbai" to GeoPoint(19.0790, 73.0090),
     )
 
     /**

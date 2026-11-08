@@ -81,7 +81,7 @@ class TopLevelNavigationTest {
         nav.navigate(PriceDetail("pune-onion-2026-11-07"))
         nav.navigate(Alerts)
 
-        nav.openFromNotification(LatestPrice("Lasalgaon APMC", "Onion"))
+        nav.openFromLink(LatestPrice("Lasalgaon APMC", "Onion"))
 
         assertEquals(Prices, nav.currentTopLevel)
         assertEquals(listOf(Prices, LatestPrice("Lasalgaon APMC", "Onion")), nav.currentStack.toList())
@@ -96,7 +96,7 @@ class TopLevelNavigationTest {
         nav.navigate(Markets)
         nav.navigate(Market("Nashik APMC"))
 
-        nav.openFromNotification(Alerts)
+        nav.openFromLink(Alerts)
 
         assertEquals(Alerts, nav.currentTopLevel)
         assertEquals(listOf<NavKey>(Alerts), nav.currentStack.toList())

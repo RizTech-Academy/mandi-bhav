@@ -10,8 +10,14 @@ import androidx.room3.RoomDatabase
  * DAOs that reach them. Room generates the implementation when the app builds.
  */
 @Database(
-    entities = [PriceEntity::class, PriceHistoryEntity::class, MarketEntity::class, AlertEntity::class],
-    version = 5,
+    entities = [
+        PriceEntity::class,
+        PriceHistoryEntity::class,
+        MarketEntity::class,
+        AlertEntity::class,
+        SaleSlipEntity::class,
+    ],
+    version = 6,
     autoMigrations = [
         // 2 to 3 adds one nullable column, prices.fetchedAt: Room can work
         // that out from the two exported schemas.
@@ -21,10 +27,14 @@ import androidx.room3.RoomDatabase
         // 4 to 5 adds a table, price_alerts (module 10). A new table is
         // something Room can always work out for itself.
         AutoMigration(from = 4, to = 5),
+        // 5 to 6 adds two nullable columns, each market's latitude and
+        // longitude, and a table, sale_slips (module 11).
+        AutoMigration(from = 5, to = 6),
     ],
 )
 @ColumnTypeConverters(Converters::class)
 abstract class MandiBhavDatabase : RoomDatabase() {
     abstract fun priceDao(): PriceDao
     abstract fun alertDao(): AlertDao
+    abstract fun saleSlipDao(): SaleSlipDao
 }

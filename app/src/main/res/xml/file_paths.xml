@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The only folder the FileProvider will hand out: where the camera app
+     writes a sale slip photo before the app copies it into its own files. -->
+<paths>
+    <cache-path name="camera" path="camera/" />
+</paths>

@@ -15,7 +15,10 @@ navigation rail from 600 dp wide. A price opens a detail screen with its last se
 best market for that commodity today. A market's screen shows its district and lets the user make
 it their home market, whose prices then come first on the Prices tab. The Alerts tab keeps price
 alerts, such as "onion at Lasalgaon above ₹2,500 a quintal", and the app sends a notification when
-a refresh brings a price that newly crosses one.
+a refresh brings a price that newly crosses one. The Markets tab can sort the markets by distance
+from the user's approximate location, and a market opens in a maps app. A price can be shared as
+text through the share sheet, and the farmer can keep a photo of her sale slip with each commodity
+and market, taken with the camera app or chosen with the photo picker.
 
 Prices come from a small static JSON API committed to this repository, in `api/`, and served by
 GitHub (`api/README.md` describes it). They are kept on the phone in a Room database, so they
@@ -36,13 +39,13 @@ the same kind of data for previews and tests.
 
 | Package | Layer | What is in it |
 |---|---|---|
-| `ui` | UI | Screens (stateless composables), their routes, one `ViewModel` per screen, and one UI-state class per screen |
-| `navigation` | UI | Navigation 3 keys and the per-tab back stacks |
-| `domain` | Domain | `bestMarketFor` and `FindBestMarketUseCase`; `checkAlerts`, which decides which alerts have newly crossed; and `RefreshPricesUseCase`, the one refresh the screen and the worker both call |
-| `data` | Data | `PriceRepository`, the interface every screen gets its prices from; `RoomPriceRepository`, its implementation over the database; `RefreshFailure` and the retry policy; `NetworkMonitor`; `UserPreferencesRepository` over DataStore; and `AlertRepository`, the price alerts in Room |
+| `ui` | UI | Screens (stateless composables), their routes, one `ViewModel` per screen, and one UI-state class per screen; `ui.permissions`, the runtime-permission helper; `Intents.kt`, sharing and maps |
+| `navigation` | UI | Navigation 3 keys, the per-tab back stacks, and `DeepLinks.kt`, which builds and checks the app's `mandibhav://` links |
+| `domain` | Domain | `bestMarketFor` and `FindBestMarketUseCase`; `distanceKm` and `nearestMarkets`; `checkAlerts`, which decides which alerts have newly crossed; and `RefreshPricesUseCase`, the one refresh the screen and the worker both call |
+| `data` | Data | `PriceRepository`, the interface every screen gets its prices from; `RoomPriceRepository`, its implementation over the database; `RefreshFailure` and the retry policy; `NetworkMonitor`; `UserPreferencesRepository` over DataStore; `AlertRepository`, the price alerts in Room; `LocationSource`, one location fix from the framework's `LocationManager`; and `SaleSlipRepository`, slip photos as private files with a row each in Room |
 | `data.network` | Data | The Retrofit interface, the JSON classes in the server's field names, and `RetrofitPriceNetworkDataSource`, which turns every failure into a `RefreshFailure` |
 | `data.local` | Data | The Room database: entities, the DAO, type converters and the migration |
-| `model` | Shared | `CommodityPrice`, `DayPrice` and `Market`, plain data classes every layer uses |
+| `model` | Shared | `CommodityPrice`, `DayPrice`, `Market`, `GeoPoint`, `PriceAlert` and `SaleSlip`, plain data classes every layer uses |
 | `work` | Background | `PriceRefreshWorker`, the daily refresh, and `DailyRefresh`, its schedule |
 | `notifications` | Platform | The notification channel, and `SystemAlertNotifier`, which posts one notification per crossed alert |
 | `di` | Wiring | The Hilt modules that build the database, the DataStore, the HTTP client and Retrofit, the app-wide coroutine scope, and say which implementations the app uses |
@@ -107,13 +110,45 @@ that commodity and market (not the notified day's price, which the next refresh 
 tap on the summary opens the Alerts tab. `MainActivity` is `singleTop`, so a tap while the app is
 open arrives through `onNewIntent`.
 
+## Permissions and device features
+
+| Feature | Permission | Asked when |
+|---|---|---|
+| Price alerts | `POST_NOTIFICATIONS` (Android 13 and later) | The first alert is saved |
+| Nearest market | `ACCESS_COARSE_LOCATION` only: a market is chosen by town, not street | "Use my location" on the Markets tab |
+| Sale slip photo, camera | None: the camera app takes the photo and writes it into a file the app offers through a `FileProvider` (`ActivityResultContracts.TakePicture`) | Never |
+| Sale slip photo, gallery | None: the photo picker hands over only the picture chosen (`PickVisualMedia`) | Never |
+| Share, Show on map | None: implicit intents (`ACTION_SEND`, `geo:`) | Never |
+
+The app never declares `CAMERA`: an app that declares it and has not been granted it cannot start
+the camera app at all (`SecurityException`). A picked picture is copied into `files/slips/` at once,
+because the picker's Uri stops being readable when the app's process ends. Android does not tell an
+app whether a permission is "never asked" or "refused twice"; the app remembers whether the user has
+refused location in DataStore (`refused_permissions`). A refused-once permission gets an explanation
+before the second and last system dialog; a blocked one sends the user to the app's page in
+Settings. The location is used once, on the phone, and is not saved or sent anywhere.
+
+## Deep links
+
+`mandibhav://price?market=<market>&commodity=<commodity>` opens today's price for that commodity and
+market; `mandibhav://alerts` opens the Alerts tab. Notifications use the same links, as explicit
+intents to `MainActivity`. A custom scheme, not a verified https App Link, because the app has no
+website to verify; any app could claim the scheme, so the links carry nothing private and
+`parseDeepLink` checks every one. Try them with
+
+```bash
+adb shell am start -a android.intent.action.VIEW -d "mandibhav://price?market=Lasalgaon%20APMC&commodity=Onion" com.riztechacademy.mandibhav
+adb shell am start -a android.intent.action.VIEW -d "mandibhav://alerts" com.riztechacademy.mandibhav
+```
+
 ## The database
 
 The schema is exported to `app/schemas/`, one JSON file per version, and committed: the migration
 tests build old databases from these files. Version 1 had prices and their history; version 2 adds
 the `markets` table, through a hand-written migration (`data/local/Migrations.kt`); version 3 adds
 `prices.fetchedAt` through a Room auto-migration; version 4 adds the two picture URLs, also
-automatically; version 5 adds the `price_alerts` table, automatically. A new database starts empty and is filled by the first download. After changing an entity, bump the version, build
+automatically; version 5 adds the `price_alerts` table, automatically; version 6 adds each market's `latitude` and
+`longitude` and the `sale_slips` table, automatically. A new database starts empty and is filled by the first download. After changing an entity, bump the version, build
 once so the new JSON exists, then add and test the migration.
 
 ## Running it
@@ -128,7 +163,7 @@ From the command line:
 
 ```bash
 ./gradlew assembleDebug        # build
-./gradlew testDebugUnitTest    # unit tests: Room under Robolectric, the network against MockWebServer, the worker with work-testing
+./gradlew testDebugUnitTest    # unit tests: Room and files under Robolectric, the network against MockWebServer, the worker with work-testing
 ./gradlew installDebug         # install on a connected device or emulator
 ```
 

@@ -110,7 +110,10 @@ class RoomPriceRepository @Inject constructor(
         val now = clock.instant()
         return priceDao.saveDownload(
             prices = latest.prices.map { it.asEntity(fetchedAt = now) },
-            markets = latest.markets.map { (name, district) -> MarketEntity(name, district) },
+            markets = latest.markets.map { (name, district) ->
+                val location = latest.locations[name]
+                MarketEntity(name, district, location?.latitude, location?.longitude)
+            },
             history = history.map { PriceHistoryEntity(it.market, it.commodity, it.date, it.modalPrice) },
         )
     }

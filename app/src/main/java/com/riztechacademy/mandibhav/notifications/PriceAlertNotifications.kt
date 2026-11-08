@@ -11,10 +11,13 @@ import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import com.riztechacademy.mandibhav.MainActivity
 import com.riztechacademy.mandibhav.R
 import com.riztechacademy.mandibhav.domain.AlertCrossing
 import com.riztechacademy.mandibhav.model.AlertDirection
+import com.riztechacademy.mandibhav.navigation.alertsLink
+import com.riztechacademy.mandibhav.navigation.latestPriceLink
 import com.riztechacademy.mandibhav.ui.formatRupees
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.format.DateTimeFormatter
@@ -23,13 +26,6 @@ import javax.inject.Inject
 
 /** The one channel Mandi Bhav posts to. The id is permanent; the name is what Settings shows. */
 const val PRICE_ALERTS_CHANNEL_ID = "price_alerts"
-
-/** The extras a notification's tap carries: the market and commodity whose price to open. */
-const val EXTRA_MARKET = "com.riztechacademy.mandibhav.MARKET"
-const val EXTRA_COMMODITY = "com.riztechacademy.mandibhav.COMMODITY"
-
-/** The extra the summary's tap carries: open the Alerts tab. */
-const val EXTRA_OPEN_ALERTS = "com.riztechacademy.mandibhav.OPEN_ALERTS"
 
 /**
  * Creates the app's notification channels. Safe to call on every start:
@@ -105,18 +101,19 @@ class SystemAlertNotifier @Inject constructor(
     }
 
     private fun AlertCrossing.toNotification(): Notification {
-        // Not the price's id: it carries the date, and tomorrow's refresh
-        // replaces it. The market and commodity still name today's price.
-        val open = Intent(context, MainActivity::class.java)
-            .putExtra(EXTRA_MARKET, price.market)
-            .putExtra(EXTRA_COMMODITY, price.commodity)
+        // The app's own deep link, so a tap and a link from anywhere else
+        // open the screen the same way. Not the price's id: it carries the
+        // date, and tomorrow's refresh replaces it. The market and commodity
+        // still name today's price.
+        val open = openInApp(latestPriceLink(price.market, price.commodity))
         return NotificationCompat.Builder(context, PRICE_ALERTS_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_alerts)
             .setContentTitle(notificationTitle())
             .setContentText(notificationText())
-            // One request code per alert. PendingIntents that differ only in
-            // their extras are the same PendingIntent to Android, so with one
-            // shared code, every alert's tap would open the last one posted.
+            // One request code per alert. Two PendingIntents are the same to
+            // Android when their intents match on action, data, type, class
+            // and categories, ignoring extras. The data now differs per
+            // market and commodity, but two alerts on one price share it.
             .setContentIntent(tapOpening(open, requestCode = alert.id.toInt()))
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
@@ -126,7 +123,7 @@ class SystemAlertNotifier @Inject constructor(
 
     /** What the bundle shows when collapsed; a tap opens the Alerts tab. */
     private fun summary(crossings: List<AlertCrossing>): Notification {
-        val open = Intent(context, MainActivity::class.java).putExtra(EXTRA_OPEN_ALERTS, true)
+        val open = openInApp(alertsLink())
         val lines = NotificationCompat.InboxStyle()
         crossings.forEach { lines.addLine(it.notificationTitle()) }
         return NotificationCompat.Builder(context, PRICE_ALERTS_CHANNEL_ID)
@@ -140,6 +137,10 @@ class SystemAlertNotifier @Inject constructor(
             .setGroupSummary(true)
             .build()
     }
+
+    /** [link], delivered to MainActivity only: explicit, so no other app that claims the scheme can take it. */
+    private fun openInApp(link: String): Intent =
+        Intent(Intent.ACTION_VIEW, link.toUri(), context, MainActivity::class.java)
 
     private fun tapOpening(intent: Intent, requestCode: Int): PendingIntent =
         PendingIntent.getActivity(

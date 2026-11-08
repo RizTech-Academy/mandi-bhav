@@ -13,4 +13,12 @@ class FakeUserPreferencesRepository(homeMarket: String? = null) : UserPreference
     override suspend fun setHomeMarket(market: String?) {
         home.value = market
     }
+
+    private val refused = MutableStateFlow<Set<String>>(emptySet())
+
+    override val refusedPermissions: Flow<Set<String>> = refused
+
+    override suspend fun setPermissionRefused(permission: String, refused: Boolean) {
+        this.refused.value = if (refused) this.refused.value + permission else this.refused.value - permission
+    }
 }

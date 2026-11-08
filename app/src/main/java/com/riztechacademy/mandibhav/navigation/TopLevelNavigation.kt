@@ -71,12 +71,12 @@ class TopLevelNavigation(
     }
 
     /**
-     * Opens [key] the way a notification should, whatever was showing before.
+     * Opens [key] the way a deep link or a notification should, whatever was showing before.
      * A top-level destination opens at its first screen. Anything else opens
      * on the start destination's tab, over its first screen: Back then goes
      * to that first screen, and from there out of the app.
      */
-    fun openFromNotification(key: NavKey) {
+    fun openFromLink(key: NavKey) {
         val tab = if (key in backStacks) key else startDestination
         val stack = backStacks.getValue(tab)
         while (stack.size > 1) stack.removeAt(stack.lastIndex)

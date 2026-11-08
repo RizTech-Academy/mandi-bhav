@@ -1,6 +1,10 @@
 package com.riztechacademy.mandibhav.di
 
 import com.riztechacademy.mandibhav.data.AlertRepository
+import com.riztechacademy.mandibhav.data.AndroidLocationSource
+import com.riztechacademy.mandibhav.data.FileSaleSlipRepository
+import com.riztechacademy.mandibhav.data.LocationSource
+import com.riztechacademy.mandibhav.data.SaleSlipRepository
 import com.riztechacademy.mandibhav.data.DataStoreUserPreferencesRepository
 import com.riztechacademy.mandibhav.data.RoomAlertRepository
 import com.riztechacademy.mandibhav.data.ConnectivityManagerNetworkMonitor
@@ -53,4 +57,12 @@ abstract class DataModule {
     /** Alerts are announced as system notifications. */
     @Binds
     abstract fun bindAlertNotifier(notifier: SystemAlertNotifier): AlertNotifier
+
+    /** The phone's location, from the framework's LocationManager. */
+    @Binds
+    abstract fun bindLocationSource(source: AndroidLocationSource): LocationSource
+
+    /** Sale slip photos: rows in the database, pictures in the app's private files. */
+    @Binds
+    abstract fun bindSaleSlipRepository(repository: FileSaleSlipRepository): SaleSlipRepository
 }

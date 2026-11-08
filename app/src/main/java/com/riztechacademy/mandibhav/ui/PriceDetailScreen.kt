@@ -28,11 +28,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -69,7 +71,14 @@ fun PriceDetailRoute(
     ),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    PriceDetailScreen(uiState = uiState, onBack = onBack, modifier = modifier)
+    val context = LocalContext.current
+    PriceDetailScreen(
+        uiState = uiState,
+        onBack = onBack,
+        modifier = modifier,
+        onShare = { price -> context.shareText(shareText(price), title = "${price.commodity} at ${price.market}") },
+        saleSlip = { price -> SaleSlipSection(price) },
+    )
 }
 
 /** Today's price for [commodity] at [market], whichever day's it is: what a notification opens. */
@@ -84,7 +93,14 @@ fun LatestPriceRoute(
     ),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    PriceDetailScreen(uiState = uiState, onBack = onBack, modifier = modifier)
+    val context = LocalContext.current
+    PriceDetailScreen(
+        uiState = uiState,
+        onBack = onBack,
+        modifier = modifier,
+        onShare = { price -> context.shareText(shareText(price), title = "${price.commodity} at ${price.market}") },
+        saleSlip = { price -> SaleSlipSection(price) },
+    )
 }
 
 /** One price at one market: today's numbers and the last seven days. */
@@ -94,6 +110,9 @@ fun PriceDetailScreen(
     uiState: PriceDetailUiState,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onShare: (CommodityPrice) -> Unit = {},
+    /** Below the week: the sale slip for this commodity and market. */
+    saleSlip: @Composable (CommodityPrice) -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier,
@@ -103,6 +122,11 @@ fun PriceDetailScreen(
                     Text((uiState as? PriceDetailUiState.Found)?.detail?.price?.commodity ?: "Price")
                 },
                 navigationIcon = { BackButton(onBack) },
+                actions = {
+                    if (uiState is PriceDetailUiState.Found) {
+                        TextButton(onClick = { onShare(uiState.detail.price) }) { Text("Share") }
+                    }
+                },
             )
         },
     ) { innerPadding ->
@@ -123,6 +147,7 @@ fun PriceDetailScreen(
                 detail = uiState.detail,
                 bestMarket = uiState.bestMarket,
                 innerPadding = innerPadding,
+                saleSlip = saleSlip,
             )
         }
     }
@@ -130,7 +155,12 @@ fun PriceDetailScreen(
 
 /** Today's numbers, the best market, and the week, for a price that exists. */
 @Composable
-private fun PriceDetailContent(detail: PriceWeek, bestMarket: CommodityPrice?, innerPadding: PaddingValues) {
+private fun PriceDetailContent(
+    detail: PriceWeek,
+    bestMarket: CommodityPrice?,
+    innerPadding: PaddingValues,
+    saleSlip: @Composable (CommodityPrice) -> Unit,
+) {
     val price = detail.price
     LazyColumn(
         modifier = Modifier
@@ -213,6 +243,12 @@ private fun PriceDetailContent(detail: PriceWeek, bestMarket: CommodityPrice?, i
                 weekRange = detail.weekRange,
                 modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
             )
+        }
+        item(key = "sale-slip") {
+            Column(modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth().padding(top = 16.dp)) {
+                HorizontalDivider(modifier = Modifier.padding(bottom = 16.dp))
+                saleSlip(price)
+            }
         }
     }
 }

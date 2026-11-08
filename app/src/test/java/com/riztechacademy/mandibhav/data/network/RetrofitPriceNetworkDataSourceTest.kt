@@ -5,6 +5,7 @@ import com.riztechacademy.mandibhav.data.RefreshException
 import com.riztechacademy.mandibhav.data.RefreshFailure
 import com.riztechacademy.mandibhav.di.NetworkModule
 import com.riztechacademy.mandibhav.di.pricesHttpClient
+import com.riztechacademy.mandibhav.model.GeoPoint
 import java.io.File
 import java.time.LocalDate
 import java.util.concurrent.TimeUnit
@@ -76,6 +77,42 @@ class RetrofitPriceNetworkDataSourceTest {
         assertEquals(LocalDate.of(2026, 11, 8), onion.date)
         assertEquals(2_580L, onion.modalPrice)
         assertEquals(server.url("/api/v1/images/thumb/onion.jpg").toString(), onion.thumbnailUrl)
+    }
+
+    @Test
+    fun eachCommittedMarketHasItsLocation() = runTest {
+        respond(body = committed("prices.json"))
+
+        val latest = source.fetchLatestPrices()
+
+        assertEquals(4, latest.locations.size)
+        assertEquals(GeoPoint(20.15, 74.233), latest.locations["Lasalgaon APMC"])
+    }
+
+    @Test
+    fun aFileFromBeforeTheLocationsStillParses() = runTest {
+        // prices.json as module 10 left it: no latitude or longitude.
+        val before = committed("prices.json").replace(Regex(""",\s*"latitude": [0-9.]+,\s*"longitude": [0-9.]+"""), "")
+        respond(body = before)
+
+        val latest = source.fetchLatestPrices()
+
+        assertEquals(9, latest.prices.size)
+        assertEquals("Nashik", latest.markets["Lasalgaon APMC"])
+        assertTrue(latest.locations.isEmpty())
+    }
+
+    @Test
+    fun halfALocationOrOneOutOfRangeIsNoLocation() = runTest {
+        respond(
+            body = committed("prices.json")
+                .replace("\"latitude\": 20.1500,", "")
+                .replace("\"latitude\": 20.0110", "\"latitude\": 200.0110"),
+        )
+
+        val latest = source.fetchLatestPrices()
+
+        assertEquals(setOf("Pune (Gultekdi) APMC", "Vashi APMC, Navi Mumbai"), latest.locations.keys)
     }
 
     @Test

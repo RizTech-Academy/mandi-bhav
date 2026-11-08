@@ -142,9 +142,43 @@ class MigrationTest {
     }
 
     @Test
-    fun aVersion1PhoneReachesVersion5InOneOpen() = runTest {
+    fun version5To6AddsEmptyLocationsAndASaleSlipsTableAndKeepsTheAlerts() = runTest {
+        helper.createDatabase(5).apply {
+            execSQL("INSERT INTO markets (name, district) VALUES ('Lasalgaon APMC', 'Nashik')")
+            execSQL(
+                "INSERT INTO price_alerts (commodity, market, direction, level, isCrossed, createdAt) " +
+                    "VALUES ('Onion', 'Lasalgaon APMC', 'Above', 2500, 1, 1794140100000)"
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(6, emptyList())
+
+        migrated.prepare("SELECT district, latitude, longitude FROM markets").use {
+            it.step()
+            assertEquals("Nashik", it.getText(0))
+            assertEquals(true, it.isNull(1))
+            assertEquals(true, it.isNull(2))
+        }
+        migrated.prepare("SELECT level, isCrossed FROM price_alerts").use {
+            it.step()
+            assertEquals(2_500L, it.getLong(0))
+            assertEquals(1L, it.getLong(1))
+        }
+        migrated.execSQL(
+            "INSERT INTO sale_slips (market, commodity, date, fileName) VALUES ('Lasalgaon APMC', 'Onion', 20400, 'a.jpg')"
+        )
+        migrated.prepare("SELECT COUNT(*) FROM sale_slips").use {
+            it.step()
+            assertEquals(1L, it.getLong(0))
+        }
+        migrated.close()
+    }
+
+    @Test
+    fun aVersion1PhoneReachesVersion6InOneOpen() = runTest {
         helper.createDatabase(1).close()
 
-        helper.runMigrationsAndValidate(5, listOf(MIGRATION_1_2)).close()
+        helper.runMigrationsAndValidate(6, listOf(MIGRATION_1_2)).close()
     }
 }
