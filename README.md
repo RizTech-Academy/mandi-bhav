@@ -54,7 +54,8 @@ running app and none of the understanding the module is for.
 | Compose BOM | 2026.09.00 (Compose 1.12, Material 3 1.4, Material 3 adaptive 1.3) |
 | activity-compose | 1.13.0 |
 | core-ktx | 1.19.1 |
-| lifecycle | 2.11.0 |
+| lifecycle (runtime, viewmodel-compose, runtime-compose) | 2.11.0 |
+| kotlinx-coroutines (android, test) | 1.11.0 |
 | compileSdk | 37.2 |
 | targetSdk | 36 |
 | minSdk | 26 |
