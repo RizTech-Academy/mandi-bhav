@@ -1,3 +1,4 @@
+import com.android.build.api.artifact.SingleArtifact
 import java.util.Properties
 
 plugins {
@@ -27,6 +28,22 @@ val localProperties = Properties().apply {
 }
 val debugPricesApiUrl = localProperties.getProperty("mandibhav.apiBaseUrl") ?: releasePricesApiUrl
 
+/**
+ * The upload key that signs release builds (module 14). Neither the keystore
+ * nor its passwords are in the repository: they come from keystore.properties
+ * in the project root, which git ignores, or on a build server from
+ * environment variables. Without either, release builds are left unsigned,
+ * and the benchmarkRelease build used to try a release on an emulator is
+ * signed with the debug key; with an upload key, both use it. Debug builds
+ * always use the debug key.
+ */
+val keystoreProperties = Properties().apply {
+    rootProject.file("keystore.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
+fun uploadSigning(property: String, environmentVariable: String): String? =
+    keystoreProperties.getProperty(property) ?: providers.environmentVariable(environmentVariable).orNull
+val uploadStoreFile = uploadSigning("storeFile", "MANDIBHAV_UPLOAD_STORE_FILE")
+
 android {
     namespace = "com.riztechacademy.mandibhav"
     compileSdk {
@@ -47,13 +64,35 @@ android {
         testInstrumentationRunner = "com.riztechacademy.mandibhav.HiltTestRunner"
     }
 
+    signingConfigs {
+        if (uploadStoreFile != null) {
+            create("upload") {
+                storeFile = rootProject.file(uploadStoreFile)
+                storePassword = uploadSigning("storePassword", "MANDIBHAV_UPLOAD_STORE_PASSWORD")
+                keyAlias = uploadSigning("keyAlias", "MANDIBHAV_UPLOAD_KEY_ALIAS")
+                keyPassword = uploadSigning("keyPassword", "MANDIBHAV_UPLOAD_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             buildConfigField("String", "PRICES_API_BASE_URL", "\"$debugPricesApiUrl\"")
         }
         release {
-            isMinifyEnabled = false
+            // R8: removes unused code, renames what is left, and optimises it;
+            // then unused resources are removed. Every release writes a new
+            // mapping file (build/outputs/mapping/release/mapping.txt); keep it
+            // with the release, or its crash reports cannot be read.
+            //
+            // AGP 9.3 added `optimization { enable = true }` for the same job.
+            // With the Baseline Profile plugin (Benchmark 1.5.0) it also
+            // minified the nonMinifiedRelease build the profile is generated
+            // from, so this project keeps these two lines until that changes.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.findByName("upload")
         }
     }
     compileOptions {
@@ -77,6 +116,22 @@ android {
         // on the JVM under Robolectric (test) and on a device (androidTest).
         getByName("test").kotlin.directories.add("src/sharedTest/kotlin")
         getByName("androidTest").kotlin.directories.add("src/sharedTest/kotlin")
+    }
+}
+
+/**
+ * `./gradlew :app:archiveReleaseMapping` copies the release build's mapping
+ * file to release-mappings/<versionCode>/, outside build/ so that `clean`
+ * cannot delete it. An app bundle carries its mapping file to Play by itself;
+ * this copy is yours, for a trace that reaches you any other way.
+ */
+androidComponents {
+    onVariants(selector().withBuildType("release")) { variant ->
+        val versionCode = variant.outputs.single().versionCode
+        tasks.register<Copy>("archive${variant.name.replaceFirstChar(Char::uppercase)}Mapping") {
+            from(variant.artifacts.get(SingleArtifact.OBFUSCATION_MAPPING_FILE))
+            into(rootProject.layout.projectDirectory.dir(versionCode.map { "release-mappings/$it" }))
+        }
     }
 }
 

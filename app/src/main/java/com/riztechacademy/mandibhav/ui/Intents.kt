@@ -36,6 +36,15 @@ fun Context.shareText(text: String, title: String) {
     startActivity(Intent.createChooser(send, null))
 }
 
+/** [url] in the user's browser. Returns false if the phone has nothing that can open it. */
+fun Context.openWebPage(url: String): Boolean = try {
+    startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+    true
+} catch (e: ActivityNotFoundException) {
+    Toast.makeText(this, "No browser on this phone can open $url.", Toast.LENGTH_LONG).show()
+    false
+}
+
 /**
  * [name] on a map, in whichever maps app the phone has. Not checked first
  * with resolveActivity: since Android 11 that answers null for apps this

@@ -32,12 +32,14 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -107,6 +109,7 @@ fun AlertsRoute(
         },
         onDelete = viewModel::delete,
         onOpenSettings = { context.openNotificationSettings() },
+        onOpenPrivacyPolicy = { context.openWebPage(PRIVACY_POLICY_URL) },
         modifier = modifier,
     )
 }
@@ -131,11 +134,24 @@ fun AlertsScreen(
     onSave: () -> Unit,
     onDelete: (id: Long) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenPrivacyPolicy: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Google Play asks for the privacy policy inside the app as well as on
+    // the store listing (module 14). Alerts is the tab with the user's own
+    // data and the notification permission, so the notice lives here.
+    var showPrivacy by rememberSaveable { mutableStateOf(false) }
+    if (showPrivacy) {
+        PrivacyDialog(onOpenPolicy = onOpenPrivacyPolicy, onDismiss = { showPrivacy = false })
+    }
     Scaffold(
         modifier = modifier,
-        topBar = { TopAppBar(title = { Text("Alerts") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Alerts") },
+                actions = { TextButton(onClick = { showPrivacy = true }) { Text("Privacy") } },
+            )
+        },
     ) { innerPadding ->
         val listState = rememberLazyListState()
         // The warning is added above the form; without this, the list would
@@ -315,6 +331,7 @@ private fun AlertsScreenPreview() {
             onSave = {},
             onDelete = {},
             onOpenSettings = {},
+            onOpenPrivacyPolicy = {},
         )
     }
 }

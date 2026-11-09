@@ -15,7 +15,8 @@ navigation rail from 600 dp wide. A price opens a detail screen with its last se
 best market for that commodity today. A market's screen shows its district and lets the user make
 it their home market, whose prices then come first on the Prices tab. The Alerts tab keeps price
 alerts, such as "onion at Lasalgaon above ₹2,500 a quintal", and the app sends a notification when
-a refresh brings a price that newly crosses one. The Markets tab can sort the markets by distance
+a refresh brings a price that newly crosses one; its **Privacy** button shows what the app does
+with data. The Markets tab can sort the markets by distance
 from the user's approximate location, and a market opens in a maps app. A price can be shared as
 text through the share sheet, and the farmer can keep a photo of her sale slip with each commodity
 and market, taken with the camera app or chosen with the photo picker.
@@ -39,7 +40,7 @@ the same kind of data for previews and tests.
 
 | Package | Layer | What is in it |
 |---|---|---|
-| `ui` | UI | Screens (stateless composables), their routes, one `ViewModel` per screen, and one UI-state class per screen; `ui.permissions`, the runtime-permission helper; `Intents.kt`, sharing and maps |
+| `ui` | UI | Screens (stateless composables), their routes, one `ViewModel` per screen, and one UI-state class per screen; `ui.permissions`, the runtime-permission helper; `Intents.kt`, sharing, maps and the browser; `PrivacyNotice.kt`, the in-app privacy notice |
 | `navigation` | UI | Navigation 3 keys, the per-tab back stacks, and `DeepLinks.kt`, which builds and checks the app's `mandibhav://` links |
 | `domain` | Domain | `bestMarketFor` and `FindBestMarketUseCase`; `distanceKm` and `nearestMarkets`; `checkAlerts`, which decides which alerts have newly crossed; and `RefreshPricesUseCase`, the one refresh the screen and the worker both call |
 | `data` | Data | `PriceRepository`, the interface every screen gets its prices from; `RoomPriceRepository`, its implementation over the database; `RefreshFailure` and the retry policy; `NetworkMonitor`; `UserPreferencesRepository` over DataStore; `AlertRepository`, the price alerts in Room; `LocationSource`, one location fix from the framework's `LocationManager`; and `SaleSlipRepository`, slip photos as private files with a row each in Room |
@@ -189,6 +190,43 @@ From the command line:
   to logcat under the tag `LeakCanary`.
 - **Debug builds log how the last process ended** (Android 11 and later), under the tag
   `LastExit`, when it was a crash or an ANR, with the ANR's main thread.
+
+## Release builds and signing
+
+Release builds are shrunk, optimised and obfuscated by R8, and unused resources are removed
+(`isMinifyEnabled`, `isShrinkResources`). The app needs no keep rules of its own: its libraries
+ship theirs, and `app/proguard-rules.pro` says why it is empty. Every release build writes a new
+mapping file, the only way to read its crash reports:
+
+```bash
+./gradlew :app:bundleRelease              # the app bundle for Google Play; it carries the mapping file
+./gradlew :app:archiveReleaseMapping      # copies mapping.txt to release-mappings/<versionCode>/
+```
+
+Release builds are signed with an upload key that is never in the repository. Put a
+`keystore.properties` in the project root (git ignores it, and `*.jks` and `*.keystore`):
+
+```properties
+storeFile=/path/outside/the/repository/mandibhav-upload.jks
+storePassword=…
+keyAlias=upload
+keyPassword=…
+```
+
+or set `MANDIBHAV_UPLOAD_STORE_FILE`, `MANDIBHAV_UPLOAD_STORE_PASSWORD`, `MANDIBHAV_UPLOAD_KEY_ALIAS`
+and `MANDIBHAV_UPLOAD_KEY_PASSWORD` on a build server. Without either, release builds are unsigned
+and every other build still works. To try a minified build on an emulator, use
+`./gradlew :app:installBenchmarkRelease`: it is built like release and signed with the debug key,
+or with the upload key if one is configured, in which case uninstall the debug build first.
+
+`versionCode` must go up with every upload to Google Play, internal test builds included.
+
+## Privacy
+
+Mandi Bhav collects and shares no personal data. [`PRIVACY.md`](PRIVACY.md) is its privacy policy;
+the Alerts tab's **Privacy** button shows the same in the app. If the app ever sends anything new
+off the phone, `PRIVACY.md`, `privacySummary` in `ui/PrivacyNotice.kt` and the Play Console's Data
+safety form change in the same release.
 
 Android Studio writes `local.properties` with your SDK path on first sync; it is not committed.
 

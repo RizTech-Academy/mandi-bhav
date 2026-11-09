@@ -7,8 +7,10 @@ plugins {
  * Tests that drive the real app from outside, on an emulator or phone:
  * one generates the Baseline Profile that ships in the app, the others
  * measure cold start and scrolling. They run against a release-like build
- * of :app (built the way release is, not debuggable, signed with the debug
- * key), never against a debug build, whose numbers mean nothing.
+ * of :app (built the way release is, not debuggable), never against a debug
+ * build, whose numbers mean nothing. That build is signed with the debug key,
+ * or with the upload key when keystore.properties configures one; then it
+ * cannot be installed over a debug build until the debug build is removed.
  *
  *   ./gradlew :app:generateBaselineProfile
  *   ./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest

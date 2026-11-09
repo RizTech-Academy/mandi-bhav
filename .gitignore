@@ -10,3 +10,11 @@
 .cxx
 .kotlin
 /baselineprofile/build
+
+# Signing: the upload keystore and its passwords never go into the repository.
+*.jks
+*.keystore
+keystore.properties
+
+# Mapping files archived per release by :app:archiveReleaseMapping.
+/release-mappings
