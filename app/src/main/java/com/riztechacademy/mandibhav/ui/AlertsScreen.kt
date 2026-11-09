@@ -283,7 +283,7 @@ private fun NewAlertForm(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             isError = form.error != null,
             supportingText = {
-                val guide = uiState.todaysPrice?.let { "Today: ${formatRupees(it)} a quintal." }
+                val guide = uiState.todaysModalPrice?.let { "Today: ${formatRupees(it)} a quintal." }
                 Text(form.error ?: guide.orEmpty())
             },
             modifier = Modifier.fillMaxWidth(),
@@ -315,13 +315,13 @@ private fun AlertsScreenPreview() {
                 alerts = listOf(
                     AlertRow(
                         PriceAlert(1, "Onion", "Lasalgaon APMC", AlertDirection.Above, 2_500, isCrossed = false),
-                        todaysPrice = SamplePrices.lasalgaonOnion.modalPrice,
+                        todaysModalPrice = SamplePrices.lasalgaonOnion.modalPrice,
                     ),
                 ),
                 commodities = listOf("Onion", "Tomato", "Potato"),
                 markets = listOf("Lasalgaon APMC", "Nashik APMC", "Pune (Gultekdi) APMC"),
                 form = NewAlertForm(commodity = "Onion", market = "Lasalgaon APMC", level = "2500"),
-                todaysPrice = SamplePrices.lasalgaonOnion.modalPrice,
+                todaysModalPrice = SamplePrices.lasalgaonOnion.modalPrice,
             ),
             showNotificationsOff = true,
             onCommodityChosen = {},

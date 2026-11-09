@@ -35,7 +35,7 @@ class FakePriceRepository(
         private set
 
     /** When the prices were last fetched; a refresh sets it to [refreshedAt]. */
-    val lastUpdatedFlow = MutableStateFlow<Instant?>(null)
+    val lastFetchedFlow = MutableStateFlow<Instant?>(null)
     var refreshedAt: Instant = Instant.parse("2026-11-07T10:35:00Z")
 
     /** Set to make the next refreshes fail as they would with no connection. */
@@ -80,13 +80,13 @@ class FakePriceRepository(
 
     override fun week(id: String): Flow<List<DayPrice>> = current.map { weeks[id].orEmpty() }
 
-    override fun lastUpdated(): Flow<Instant?> = lastUpdatedFlow
+    override fun lastFetched(): Flow<Instant?> = lastFetchedFlow
 
     override suspend fun refresh(): Int {
         refreshCount++
         gate?.await()
         failure?.let { throw RefreshException(it) }
-        lastUpdatedFlow.value = refreshedAt
+        lastFetchedFlow.value = refreshedAt
         val changed = pricesAfterRefresh.count { it !in prices }
         prices = pricesAfterRefresh
         return changed

@@ -87,20 +87,20 @@ class PricesViewModel @Inject constructor(
     private data class SavedData(
         val prices: List<CommodityPrice>,
         val homeMarket: String?,
-        val lastUpdated: Instant?,
+        val lastFetched: Instant?,
     )
 
     private val savedData = combine(
-        repository.todaysPrices(), preferences.homeMarket, repository.lastUpdated(),
-    ) { prices, home, lastUpdated ->
-        SavedData(prices, home, lastUpdated)
+        repository.todaysPrices(), preferences.homeMarket, repository.lastFetched(),
+    ) { prices, home, lastFetched ->
+        SavedData(prices, home, lastFetched)
     }
 
     /** The whole screen. Each input above changes it; nothing else does. */
     val uiState: StateFlow<PricesUiState> =
         combine(
             savedData, filter, bestMarket, refreshStatus, isOnline,
-        ) { (prices, home, lastUpdated), (query, commodity), best, status, online ->
+        ) { (prices, home, lastFetched), (query, commodity), best, status, online ->
             PricesUiState(
                 isLoading = false,
                 query = query,
@@ -108,7 +108,7 @@ class PricesViewModel @Inject constructor(
                 commodities = commoditiesIn(prices),
                 prices = filterPrices(homeMarketFirst(prices, home), query, commodity),
                 homeMarket = home,
-                lastUpdated = lastUpdated,
+                lastFetched = lastFetched,
                 noSavedPrices = prices.isEmpty(),
                 bestMarket = best,
                 isRefreshing = status.isRefreshing,

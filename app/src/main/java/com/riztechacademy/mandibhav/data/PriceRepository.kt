@@ -33,13 +33,16 @@ interface PriceRepository {
      */
     fun week(id: String): Flow<List<DayPrice>>
 
-    /** When prices were last fetched successfully; null if never. */
-    fun lastUpdated(): Flow<Instant?>
+    /**
+     * When prices were last fetched successfully; null if never. It moves on
+     * every successful refresh, including one that changed no price.
+     */
+    fun lastFetched(): Flow<Instant?>
 
     /**
-     * Fetches the latest prices. Returns how many prices changed. Throws an
-     * [java.io.IOException] when there is no connection; the saved prices
-     * are left as they were.
+     * Fetches the latest prices. Returns how many prices changed. Throws
+     * [RefreshException], saying why, when the prices cannot be fetched;
+     * the saved prices are left as they were.
      */
     suspend fun refresh(): Int
 }

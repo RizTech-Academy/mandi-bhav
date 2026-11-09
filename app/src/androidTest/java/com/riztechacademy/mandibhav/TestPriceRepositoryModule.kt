@@ -48,7 +48,7 @@ class StaticPriceRepository(prices: List<CommodityPrice> = SamplePrices.all) : P
 
     override fun week(id: String): Flow<List<DayPrice>> = flowOf(emptyList())
 
-    override fun lastUpdated(): Flow<Instant?> = flowOf(Instant.parse("2026-11-07T10:35:00Z"))
+    override fun lastFetched(): Flow<Instant?> = flowOf(Instant.parse("2026-11-07T10:35:00Z"))
 
     override suspend fun refresh(): Int = 0
 }

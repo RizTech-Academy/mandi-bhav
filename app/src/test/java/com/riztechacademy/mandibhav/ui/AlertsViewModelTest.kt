@@ -50,7 +50,7 @@ class AlertsViewModelTest {
         viewModel.onCommodityChosen("Onion")
         viewModel.onMarketChosen("Lasalgaon APMC")
 
-        assertEquals(2_450L, viewModel.uiState.value.todaysPrice)
+        assertEquals(2_450L, viewModel.uiState.value.todaysModalPrice)
     }
 
     @Test

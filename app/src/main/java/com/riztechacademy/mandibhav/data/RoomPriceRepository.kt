@@ -76,7 +76,7 @@ class RoomPriceRepository @Inject constructor(
             }
         }.distinctUntilChanged()
 
-    override fun lastUpdated(): Flow<Instant?> = priceDao.observeLastFetched().distinctUntilChanged()
+    override fun lastFetched(): Flow<Instant?> = priceDao.observeLastFetched().distinctUntilChanged()
 
     /**
      * Fetches the latest prices and saves them, returning how many changed.

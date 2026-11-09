@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
@@ -239,7 +240,7 @@ fun PricesScreen(
             }
             if (!uiState.isLoading && !uiState.noSavedPrices) {
                 item(key = "updated", contentType = "message", span = { GridItemSpan(maxLineSpan) }) {
-                    UpdatedText(lastUpdated = uiState.lastUpdated, isOnline = uiState.isOnline)
+                    UpdatedText(lastFetched = uiState.lastFetched, isOnline = uiState.isOnline)
                 }
             }
             if (uiState.noSavedPrices) {
@@ -294,9 +295,9 @@ fun PricesScreen(
  * [STALE_AFTER]. "Now" is read when this is drawn; it is not a ticking clock.
  */
 @Composable
-private fun UpdatedText(lastUpdated: Instant?, isOnline: Boolean) {
+private fun UpdatedText(lastFetched: Instant?, isOnline: Boolean) {
     val label = updatedLabel(
-        lastUpdated = lastUpdated,
+        lastFetched = lastFetched,
         now = Instant.now(),
         zone = ZoneId.systemDefault(),
         locale = LocalConfiguration.current.locales[0],
@@ -310,7 +311,7 @@ private fun UpdatedText(lastUpdated: Instant?, isOnline: Boolean) {
             )
         }
         Text(
-            text = if (label.isStale && lastUpdated != null) "${label.text}. May be out of date." else label.text,
+            text = if (label.isStale && lastFetched != null) "${label.text}. May be out of date." else label.text,
             style = MaterialTheme.typography.bodyMedium,
             color = if (label.isStale) {
                 MaterialTheme.colorScheme.error
@@ -339,7 +340,9 @@ private fun NothingSaved(isDownloading: Boolean, failure: RefreshFailure?, onRet
     ) {
         when {
             isDownloading -> {
-                var isSlow by remember { mutableStateOf(false) }
+                // Saveable: a rotation half-way through a slow download must not
+                // take the explanation away for another five seconds.
+                var isSlow by rememberSaveable { mutableStateOf(false) }
                 LaunchedEffect(Unit) {
                     delay(SLOW_AFTER_MILLIS)
                     isSlow = true

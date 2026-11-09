@@ -18,15 +18,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /** One saved alert, with today's modal price for it; null if that market has no price today. */
-data class AlertRow(val alert: PriceAlert, val todaysPrice: Long?)
+data class AlertRow(val alert: PriceAlert, val todaysModalPrice: Long?)
 
 /** "Above ₹2,500 a quintal. Today ₹2,580, past your level." */
 fun AlertRow.description(): String {
     val side = if (alert.direction == AlertDirection.Above) "Above" else "Below"
     val today = when {
-        todaysPrice == null -> "No price today."
-        alert.isMetBy(todaysPrice) -> "Today ${formatRupees(todaysPrice)}, past your level."
-        else -> "Today ${formatRupees(todaysPrice)}."
+        todaysModalPrice == null -> "No price today."
+        alert.isMetBy(todaysModalPrice) -> "Today ${formatRupees(todaysModalPrice)}, past your level."
+        else -> "Today ${formatRupees(todaysModalPrice)}."
     }
     return "$side ${formatRupees(alert.level)} a quintal. $today"
 }
@@ -51,7 +51,7 @@ data class AlertsUiState(
     val markets: List<String> = emptyList(),
     val form: NewAlertForm = NewAlertForm(),
     /** Today's modal price for the chosen commodity and market, as a guide for the level. */
-    val todaysPrice: Long? = null,
+    val todaysModalPrice: Long? = null,
 )
 
 /**
@@ -88,7 +88,7 @@ class AlertsViewModel @Inject constructor(
                 commodities = commoditiesIn(todays),
                 markets = todays.filter { it.commodity == form.commodity }.map { it.market }.distinct().sorted(),
                 form = form,
-                todaysPrice = byMarket[form.market to form.commodity]?.modalPrice,
+                todaysModalPrice = byMarket[form.market to form.commodity]?.modalPrice,
             )
         }.stateIn(
             scope = viewModelScope,

@@ -24,7 +24,7 @@ data class PricesUiState(
     /** The best market for the chosen commodity; null when "All" is selected. */
     val bestMarket: CommodityPrice? = null,
     /** When the prices on this phone were last fetched; null if never. */
-    val lastUpdated: Instant? = null,
+    val lastFetched: Instant? = null,
     /** The phone has no prices saved at all, as opposed to none that match. */
     val noSavedPrices: Boolean = false,
     /** True while a refresh is running. */

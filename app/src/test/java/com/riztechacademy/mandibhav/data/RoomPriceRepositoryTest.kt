@@ -202,11 +202,11 @@ class RoomPriceRepositoryTest {
 
     @Test
     fun aRefreshRecordsWhenThePricesWereFetched() = runTest {
-        assertNull(repository.lastUpdated().first())
+        assertNull(repository.lastFetched().first())
 
         repository.refresh()
 
-        assertEquals(fourOFive, repository.lastUpdated().first())
+        assertEquals(fourOFive, repository.lastFetched().first())
     }
 
     @Test
@@ -219,7 +219,7 @@ class RoomPriceRepositoryTest {
 
         assertEquals(RefreshFailure.NoConnection, (failure as RefreshException).failure)
         assertEquals(2_525L, repository.price(SamplePrices.lasalgaonOnion.id).first()!!.modalPrice)
-        assertEquals(fourOFive, repository.lastUpdated().first())
+        assertEquals(fourOFive, repository.lastFetched().first())
     }
 
     @Test
@@ -231,7 +231,7 @@ class RoomPriceRepositoryTest {
         )
 
         assertEquals(0, later.refresh())
-        assertEquals(fourOFive.plusSeconds(3_600), later.lastUpdated().first())
+        assertEquals(fourOFive.plusSeconds(3_600), later.lastFetched().first())
     }
 
     // A new day, 8 November: every price has a new id, because the id carries the date.
@@ -339,7 +339,7 @@ class RoomPriceRepositoryTest {
         assertTrue(screen.isCancelled)
 
         // Nobody is waiting any more, and the prices are still saved.
-        assertEquals(fourOFive, repository.lastUpdated().first { it != null })
+        assertEquals(fourOFive, repository.lastFetched().first { it != null })
         assertEquals(2_525L, repository.price(SamplePrices.lasalgaonOnion.id).first()!!.modalPrice)
         assertEquals(1, network.calls)
     }

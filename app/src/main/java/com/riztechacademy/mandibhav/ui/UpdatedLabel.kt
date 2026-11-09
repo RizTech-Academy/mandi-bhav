@@ -18,21 +18,21 @@ data class UpdatedLabel(val text: String, val isStale: Boolean)
  * [zone] and [locale] are parameters so that a test can fix them.
  */
 fun updatedLabel(
-    lastUpdated: Instant?,
+    lastFetched: Instant?,
     now: Instant,
     zone: ZoneId,
     locale: Locale,
 ): UpdatedLabel {
-    if (lastUpdated == null) {
+    if (lastFetched == null) {
         // Null is not "never": rows saved before version 3 have no time either.
         return UpdatedLabel("Not known when these prices were fetched. Tap Refresh.", isStale = true)
     }
-    val time = DateTimeFormatter.ofPattern("h:mm a", locale).format(lastUpdated.atZone(zone))
-    val day = lastUpdated.atZone(zone).toLocalDate()
+    val time = DateTimeFormatter.ofPattern("h:mm a", locale).format(lastFetched.atZone(zone))
+    val day = lastFetched.atZone(zone).toLocalDate()
     val text = if (day == now.atZone(zone).toLocalDate()) {
         "Updated today at $time"
     } else {
         "Updated ${DateTimeFormatter.ofPattern("d MMM", locale).format(day)} at $time"
     }
-    return UpdatedLabel(text, isStale = Duration.between(lastUpdated, now) > STALE_AFTER)
+    return UpdatedLabel(text, isStale = Duration.between(lastFetched, now) > STALE_AFTER)
 }
